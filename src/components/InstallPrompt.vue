@@ -17,54 +17,60 @@
 
       <!-- 设备特定的安装步骤 -->
       <div class="install-steps">
-        <!-- iOS Safari 步骤 -->
-        <div v-if="deviceType === 'ios'" class="steps-container">
-          <div class="device-badge ios">
-            <van-icon name="apple-o" size="16" />
-            <span>iPhone / iPad</span>
-          </div>
-          
-          <div class="steps">
-            <div class="step">
-              <div class="step-number">1</div>
-              <div class="step-content">
-                <div class="step-icon">
-                  <van-icon name="share" size="24" color="#007AFF" />
-                </div>
-                <div class="step-text">
-                  <strong>点击分享按钮</strong>
-                  <span>在底部导航栏找到分享图标</span>
-                </div>
-              </div>
-            </div>
+                 <!-- iOS Safari 步骤 -->
+         <div v-if="deviceType === 'ios'" class="steps-container">
+           <div class="device-badge ios">
+             <van-icon name="apple-o" size="16" />
+             <span>iPhone / iPad</span>
+           </div>
 
-            <div class="step">
-              <div class="step-number">2</div>
-              <div class="step-content">
-                <div class="step-icon">
-                  <van-icon name="plus" size="24" color="#007AFF" />
-                </div>
-                <div class="step-text">
-                  <strong>添加到主屏幕</strong>
-                  <span>在分享菜单中选择此选项</span>
-                </div>
-              </div>
-            </div>
+           <!-- iOS 增强提示 -->
+           <div class="ios-enhanced-tip">
+             <van-icon name="info-o" size="20" color="#007AFF" />
+             <p>iOS设备需要手动操作，无法自动安装</p>
+           </div>
+           
+           <div class="steps">
+             <div class="step">
+               <div class="step-number">1</div>
+               <div class="step-content">
+                 <div class="step-icon">
+                   <van-icon name="share" size="24" color="#007AFF" />
+                 </div>
+                 <div class="step-text">
+                   <strong>点击分享按钮</strong>
+                   <span>在底部导航栏找到 <van-icon name="share" size="14" /> 分享图标</span>
+                 </div>
+               </div>
+             </div>
 
-            <div class="step">
-              <div class="step-number">3</div>
-              <div class="step-content">
-                <div class="step-icon">
-                  <van-icon name="success" size="24" color="#34C759" />
-                </div>
-                <div class="step-text">
-                  <strong>完成安装</strong>
-                  <span>确认后即可在桌面找到应用</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+             <div class="step">
+               <div class="step-number">2</div>
+               <div class="step-content">
+                 <div class="step-icon">
+                   <van-icon name="plus" size="24" color="#007AFF" />
+                 </div>
+                 <div class="step-text">
+                   <strong>添加到主屏幕</strong>
+                   <span>在分享菜单中找到并点击此选项</span>
+                 </div>
+               </div>
+             </div>
+
+             <div class="step">
+               <div class="step-number">3</div>
+               <div class="step-content">
+                 <div class="step-icon">
+                   <van-icon name="success" size="24" color="#34C759" />
+                 </div>
+                 <div class="step-text">
+                   <strong>完成安装</strong>
+                   <span>点击"添加"即可在桌面找到应用</span>
+                 </div>
+               </div>
+             </div>
+           </div>
+         </div>
 
         <!-- Android Chrome 步骤 -->
         <div v-else-if="deviceType === 'android'" class="steps-container">
@@ -136,8 +142,26 @@
 
       <!-- 底部按钮 -->
       <div class="prompt-actions">
-        <button class="btn-secondary" @click="remindLater">稍后提醒</button>
-        <button class="btn-primary" @click="closePrompt">暂时关闭</button>
+        <!-- Android Chrome 一键安装按钮 -->
+        <button 
+          v-if="canAutoInstall && deviceType === 'android'" 
+          class="btn-install" 
+          @click="handleAutoInstall"
+        >
+          <van-icon name="plus" size="16" />
+          一键安装
+        </button>
+        
+        <!-- 常规按钮 -->
+        <template v-if="!canAutoInstall || deviceType !== 'android'">
+          <button class="btn-secondary" @click="remindLater">稍后提醒</button>
+          <button class="btn-primary" @click="closePrompt">暂时关闭</button>
+        </template>
+        
+        <!-- Android有一键安装时的次要按钮 -->
+        <template v-else>
+          <button class="btn-secondary" @click="remindLater">稍后提醒</button>
+        </template>
       </div>
     </div>
   </div>
@@ -151,6 +175,8 @@ export default {
   setup() {
     const showPrompt = ref(false)
     const deviceType = ref('desktop')
+    const deferredPrompt = ref(null)
+    const canAutoInstall = ref(false)
 
     // 检测设备类型
     const detectDevice = () => {
@@ -241,12 +267,57 @@ export default {
       console.log('⏰ 用户选择稍后提醒')
     }
 
+    // 一键安装功能（Android Chrome支持）
+    const handleAutoInstall = async () => {
+      if (deferredPrompt.value) {
+        console.log('🚀 触发自动安装')
+        try {
+          // 显示安装提示
+          deferredPrompt.value.prompt()
+          
+          // 等待用户响应
+          const { outcome } = await deferredPrompt.value.userChoice
+          console.log('用户选择:', outcome)
+          
+          if (outcome === 'accepted') {
+            console.log('✅ 用户接受了安装')
+            showPrompt.value = false
+          } else {
+            console.log('❌ 用户拒绝了安装')
+          }
+          
+          // 清除deferredPrompt，因为它只能使用一次
+          deferredPrompt.value = null
+          canAutoInstall.value = false
+        } catch (error) {
+          console.error('安装失败:', error)
+        }
+      } else {
+        console.log('❌ 当前环境不支持自动安装')
+      }
+    }
+
     onMounted(() => {
       detectDevice()
       
-      // 清理localStorage用于测试（生产环境应该删除这行）
-      // localStorage.removeItem('install-prompt-dismissed')
-      // localStorage.removeItem('install-prompt-last-shown')
+      // 监听PWA安装事件（主要是Android Chrome）
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('🎯 检测到PWA安装提示事件')
+        // 阻止默认的安装提示
+        e.preventDefault()
+        // 保存事件，稍后使用
+        deferredPrompt.value = e
+        canAutoInstall.value = true
+        console.log('✅ 支持一键安装功能')
+      })
+
+      // 监听PWA安装完成事件
+      window.addEventListener('appinstalled', () => {
+        console.log('🎉 PWA安装完成')
+        showPrompt.value = false
+        deferredPrompt.value = null
+        canAutoInstall.value = false
+      })
       
       console.log('🚀 InstallPrompt组件已挂载')
       
@@ -265,8 +336,10 @@ export default {
     return {
       showPrompt,
       deviceType,
+      canAutoInstall,
       closePrompt,
-      remindLater
+      remindLater,
+      handleAutoInstall
     }
   }
 }
@@ -371,7 +444,7 @@ export default {
   border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 
   &.ios {
     background: #e3f2fd;
@@ -386,6 +459,24 @@ export default {
   &.desktop {
     background: #f3e5f5;
     color: #7b1fa2;
+  }
+}
+
+.ios-enhanced-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f0f8ff;
+  border: 1px solid #e3f2fd;
+  border-radius: 8px;
+  margin-bottom: 20px;
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #1976d2;
+    font-weight: 500;
   }
 }
 
@@ -478,7 +569,8 @@ export default {
 }
 
 .btn-secondary,
-.btn-primary {
+.btn-primary,
+.btn-install {
   flex: 1;
   padding: 14px 20px;
   border-radius: 12px;
@@ -487,6 +579,10 @@ export default {
   border: none;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .btn-secondary {
@@ -505,6 +601,39 @@ export default {
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+}
+
+.btn-install {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  // 添加闪光效果
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+  }
+
+  &:hover::before {
+    left: 100%;
   }
 }
 
