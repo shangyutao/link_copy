@@ -1,10 +1,14 @@
 <template>
   <div class="app">
     <router-view />
+    <InstallPrompt />
   </div>
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
+import InstallPrompt from './components/InstallPrompt.vue'
+
 // 全局配置和初始化
 onMounted(() => {
   // 设置viewport高度
