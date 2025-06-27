@@ -167,16 +167,24 @@ export default {
 
     // 检查是否应该显示提示
     const shouldShowPrompt = () => {
+      console.log('🔍 检查是否显示安装提示...')
+      console.log('设备类型:', deviceType.value)
+      
       // 检查是否已经安装为PWA
-      if (window.matchMedia('(display-mode: standalone)').matches) {
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches
+      console.log('是否已安装PWA:', isPWA)
+      if (isPWA) {
         return false
       }
 
       // 检查是否已经关闭过提示
       const dismissed = localStorage.getItem('install-prompt-dismissed')
       const lastShown = localStorage.getItem('install-prompt-last-shown')
+      console.log('是否已关闭:', dismissed)
+      console.log('上次显示时间:', lastShown)
       
       if (dismissed === 'true') {
+        console.log('❌ 用户已永久关闭提示')
         return false
       }
 
@@ -185,14 +193,18 @@ export default {
         const lastShownTime = new Date(lastShown)
         const now = new Date()
         const hoursDiff = (now - lastShownTime) / (1000 * 60 * 60)
+        console.log('距离上次显示小时数:', hoursDiff)
         
         if (hoursDiff < 24) {
+          console.log('❌ 24小时内已显示过')
           return false
         }
       }
 
-      // 只在移动设备上显示
-      return deviceType.value === 'ios' || deviceType.value === 'android'
+      // 临时修改：在所有设备上都显示（用于测试）
+      const shouldShow = true // deviceType.value === 'ios' || deviceType.value === 'android'
+      console.log('是否应该显示:', shouldShow)
+      return shouldShow
     }
 
     // 关闭提示
@@ -210,12 +222,22 @@ export default {
     onMounted(() => {
       detectDevice()
       
-      // 延迟3秒显示提示，让用户先体验一下应用
+      // 清理localStorage用于测试（生产环境应该删除这行）
+      // localStorage.removeItem('install-prompt-dismissed')
+      // localStorage.removeItem('install-prompt-last-shown')
+      
+      console.log('🚀 InstallPrompt组件已挂载')
+      
+      // 减少延迟时间用于测试
       setTimeout(() => {
+        console.log('⏰ 延迟时间到，检查是否显示提示')
         if (shouldShowPrompt()) {
+          console.log('✅ 显示安装提示')
           showPrompt.value = true
+        } else {
+          console.log('❌ 不显示安装提示')
         }
-      }, 3000)
+      }, 1000) // 改为1秒，方便测试
     })
 
     return {
