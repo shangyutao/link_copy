@@ -1,0 +1,51 @@
+# 依赖
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# 构建输出 (保留dist用于Netlify部署)
+# dist/
+build/
+
+# 环境变量
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+logs
+*.log
+
+# Runtime
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# 临时文件
+.tmp/
+.temp/
+
+# Capacitor
+android/app/build/
+ios/App/build/
+ios/App/Pods/
+ios/App/Podfile.lock
+
+# 其他
+.cache/
+.parcel-cache/ 

@@ -1,0 +1,58 @@
+{
+  "name": "link-copy-frontend",
+  "version": "1.0.0",
+  "description": "Link Copy - 链接转文案工具前端",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "serve": "vite preview",
+    "cap:add:android": "npx cap add android",
+    "cap:add:ios": "npx cap add ios",
+    "cap:sync": "npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios",
+    "cap:build": "npm run build && npx cap sync",
+    "mobile:build": "./build-mobile.sh",
+    "android": "npm run cap:build && npx cap open android",
+    "ios": "npm run cap:build && npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.2.2",
+    "@capacitor/cli": "^5.2.2",
+    "@capacitor/clipboard": "^5.0.6",
+    "@capacitor/core": "^5.2.2",
+    "@capacitor/ios": "^5.2.2",
+    "@capacitor/splash-screen": "^5.0.6",
+    "@capacitor/status-bar": "^5.0.6",
+    "@iconify/vue": "^4.1.1",
+    "@vant/touch-emulator": "^1.4.0",
+    "axios": "^1.5.0",
+    "lottie-web": "^5.13.0",
+    "pinia": "^2.1.6",
+    "vant": "^4.6.2",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.2.3",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.27",
+    "sass": "^1.64.1",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5.8.3",
+    "unplugin-auto-import": "^0.16.6",
+    "unplugin-vue-components": "^0.25.1",
+    "vite": "^4.4.5"
+  },
+  "keywords": [
+    "vue",
+    "video",
+    "transcription",
+    "mobile",
+    "capacitor"
+  ],
+  "author": "Link Copy Team",
+  "license": "MIT"
+}

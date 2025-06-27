@@ -1,0 +1,172 @@
+// 主色调 - 现代科技感渐变
+$primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+$accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+$dark-gradient: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+
+// 主色系
+$primary-color: #667eea;
+$secondary-color: #764ba2;
+$accent-color: #4facfe;
+$highlight-color: #f093fb;
+
+// 功能色
+$success-color: #10b981;
+$warning-color: #f59e0b;
+$error-color: #ef4444;
+$info-color: #3b82f6;
+
+// 背景色系 - 更现代的渐变背景
+$bg-primary: #ffffff;
+$bg-secondary: #f8fafc;
+$bg-tertiary: #f1f5f9;
+$bg-gradient: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+$bg-card: rgba(255, 255, 255, 0.8);
+$bg-glass: rgba(255, 255, 255, 0.25);
+$bg-dark: #1e293b;
+$bg-dark-secondary: #334155;
+
+// 文字颜色
+$text-primary: #1e293b;
+$text-secondary: #64748b;
+$text-light: #94a3b8;
+$text-white: #ffffff;
+$text-accent: #667eea;
+
+// 边框和阴影 - 更现代的阴影效果
+$border-color: #e2e8f0;
+$border-light: #f1f5f9;
+$shadow-light: 0 1px 3px rgba(0, 0, 0, 0.05);
+$shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
+$shadow-floating: 0 8px 30px rgba(0, 0, 0, 0.12);
+$shadow-heavy: 0 20px 40px rgba(0, 0, 0, 0.15);
+$shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
+
+// 字体大小
+$font-xs: 0.75rem;    // 12px
+$font-sm: 0.875rem;   // 14px
+$font-base: 1rem;     // 16px
+$font-lg: 1.125rem;   // 18px
+$font-xl: 1.25rem;    // 20px
+$font-2xl: 1.5rem;    // 24px
+$font-3xl: 1.875rem;  // 30px
+
+// 字重
+$font-normal: 400;
+$font-medium: 500;
+$font-semibold: 600;
+$font-bold: 700;
+
+// 圆角 - 更现代的圆角设计
+$radius-sm: 0.375rem;   // 6px
+$radius-md: 0.75rem;    // 12px
+$radius-lg: 1rem;       // 16px
+$radius-xl: 1.25rem;    // 20px
+$radius-2xl: 1.5rem;    // 24px
+$radius-3xl: 2rem;      // 32px
+$radius-full: 50%;
+
+// 间距
+$space-xs: 0.25rem;    // 4px
+$space-sm: 0.5rem;     // 8px
+$space-md: 1rem;       // 16px
+$space-lg: 1.5rem;     // 24px
+$space-xl: 2rem;       // 32px
+$space-2xl: 3rem;      // 48px
+$space-3xl: 4rem;      // 64px
+
+// 移动端断点
+$breakpoints: (
+  'xs': 0,
+  'sm': 576px,
+  'md': 768px,
+  'lg': 992px,
+  'xl': 1200px,
+  'xxl': 1400px
+);
+
+// 媒体查询混入
+@use 'sass:map';
+@mixin respond-to($breakpoint) {
+  @media (min-width: map.get($breakpoints, $breakpoint)) {
+    @content;
+  }
+}
+
+// 渐变背景混入
+@mixin gradient-bg($gradient: $primary-gradient) {
+  background: $gradient;
+}
+
+// 玻璃效果混入
+@mixin glass-effect($opacity: 0.25) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+// 卡片样式混入
+@mixin card-style($shadow: $shadow-card, $background: $bg-card) {
+  background: $background;
+  border-radius: $radius-xl;
+  box-shadow: $shadow;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+// 浮动卡片效果
+@mixin floating-card {
+  @include card-style($shadow-floating);
+  transform: translateY(0);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-heavy;
+  }
+}
+
+// 按钮样式混入
+@mixin btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-md $space-lg;
+  border-radius: $radius-lg;
+  font-weight: $font-medium;
+  font-size: $font-base;
+  line-height: 1.5;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 44px; // 移动端友好的最小触摸区域
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+  
+  &:hover::before {
+    left: 100%;
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    
+    &::before {
+      display: none;
+    }
+  }
+} 

@@ -1,0 +1,269 @@
+// 重置样式
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: $bg-gradient;
+  color: $text-primary;
+}
+
+// 背景装饰元素
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 60%, rgba(79, 172, 254, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+// 安全区域适配
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+// 通用按钮样式
+.btn {
+  @include btn-base;
+  
+  &.btn-primary {
+    @include gradient-bg;
+    color: white;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: $shadow-floating;
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+  
+  &.btn-secondary {
+    @include gradient-bg($secondary-gradient);
+    color: white;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: $shadow-floating;
+    }
+  }
+  
+  &.btn-accent {
+    @include gradient-bg($accent-gradient);
+    color: white;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: $shadow-floating;
+    }
+  }
+  
+  &.btn-outline {
+    background: transparent;
+    color: $primary-color;
+    border: 2px solid $primary-color;
+    
+    &:hover {
+      @include gradient-bg;
+      color: white;
+      border-color: transparent;
+    }
+  }
+  
+  &.btn-glass {
+    @include glass-effect(0.15);
+    color: $primary-color;
+    
+    &:hover {
+      @include glass-effect(0.25);
+      color: $primary-color;
+    }
+  }
+  
+  &.btn-large {
+    padding: $space-lg $space-xl;
+    font-size: $font-lg;
+    min-height: 56px;
+  }
+  
+  &.btn-small {
+    padding: $space-sm $space-md;
+    font-size: $font-sm;
+    min-height: 36px;
+  }
+}
+
+// 通用卡片样式
+.card {
+  @include card-style;
+  padding: $space-lg;
+  
+  &.card-floating {
+    @include floating-card;
+  }
+  
+  &.card-glass {
+    @include glass-effect;
+  }
+}
+
+// 页面容器
+.page-container {
+  min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100);
+  padding: $space-lg;
+  position: relative;
+  
+  @include respond-to('md') {
+    padding: $space-xl;
+    max-width: 768px;
+    margin: 0 auto;
+  }
+}
+
+// 渐变文字
+.gradient-text {
+  background: $primary-gradient;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// 发光效果
+.glow-effect {
+  box-shadow: $shadow-glow;
+  transition: box-shadow 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+  }
+}
+
+// 加载动画
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 2px solid #fff;
+  animation: spin 1s linear infinite;
+}
+
+// 旋转动画
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// 浮入动画
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 脉冲动画
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+// 动画工具类
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+// 文本样式类
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.text-xs { font-size: $font-xs; }
+.text-sm { font-size: $font-sm; }
+.text-base { font-size: $font-base; }
+.text-lg { font-size: $font-lg; }
+.text-xl { font-size: $font-xl; }
+.text-2xl { font-size: $font-2xl; }
+.text-3xl { font-size: $font-3xl; }
+
+.font-normal { font-weight: $font-normal; }
+.font-medium { font-weight: $font-medium; }
+.font-semibold { font-weight: $font-semibold; }
+.font-bold { font-weight: $font-bold; }
+
+// 间距工具类
+.mb-xs { margin-bottom: $space-xs; }
+.mb-sm { margin-bottom: $space-sm; }
+.mb-md { margin-bottom: $space-md; }
+.mb-lg { margin-bottom: $space-lg; }
+.mb-xl { margin-bottom: $space-xl; }
+
+.mt-xs { margin-top: $space-xs; }
+.mt-sm { margin-top: $space-sm; }
+.mt-md { margin-top: $space-md; }
+.mt-lg { margin-top: $space-lg; }
+.mt-xl { margin-top: $space-xl; }
+
+// 响应式隐藏
+.hide-mobile {
+  @media (max-width: 767px) {
+    display: none !important;
+  }
+}
+
+.hide-desktop {
+  @media (min-width: 768px) {
+    display: none !important;
+  }
+}
+
+// 滚动条样式
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.5);
+} 
