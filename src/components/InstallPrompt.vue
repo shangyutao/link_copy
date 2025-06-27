@@ -137,7 +137,7 @@
       <!-- 底部按钮 -->
       <div class="prompt-actions">
         <button class="btn-secondary" @click="remindLater">稍后提醒</button>
-        <button class="btn-primary" @click="closePrompt">我知道了</button>
+        <button class="btn-primary" @click="closePrompt">暂时关闭</button>
       </div>
     </div>
   </div>
@@ -177,32 +177,50 @@ export default {
         return false
       }
 
-      // 检查是否已经关闭过提示
-      const dismissed = localStorage.getItem('install-prompt-dismissed')
+      // 检查用户设置
+      const dismissCount = parseInt(localStorage.getItem('install-prompt-dismiss-count') || '0')
       const lastShown = localStorage.getItem('install-prompt-last-shown')
-      console.log('是否已关闭:', dismissed)
+      console.log('关闭次数:', dismissCount)
       console.log('上次显示时间:', lastShown)
       
-      if (dismissed === 'true') {
-        console.log('❌ 用户已永久关闭提示')
-        return false
-      }
-
-      // 如果选择了稍后提醒，24小时内不再显示
-      if (lastShown) {
-        const lastShownTime = new Date(lastShown)
-        const now = new Date()
-        const hoursDiff = (now - lastShownTime) / (1000 * 60 * 60)
-        console.log('距离上次显示小时数:', hoursDiff)
-        
-        if (hoursDiff < 24) {
-          console.log('❌ 24小时内已显示过')
-          return false
+      // 如果用户关闭超过3次，则减少频率
+      if (dismissCount >= 3) {
+        if (lastShown) {
+          const lastShownTime = new Date(lastShown)
+          const now = new Date()
+          const hoursDiff = (now - lastShownTime) / (1000 * 60 * 60)
+          console.log('距离上次显示小时数:', hoursDiff)
+          
+          // 关闭3次以上，7天后再显示
+          if (hoursDiff < 168) { // 7天 = 168小时
+            console.log('❌ 用户已多次关闭，7天内不再显示')
+            return false
+          }
+        }
+      } else {
+        // 关闭次数少于3次，采用较短的间隔
+        if (lastShown) {
+          const lastShownTime = new Date(lastShown)
+          const now = new Date()
+          const hoursDiff = (now - lastShownTime) / (1000 * 60 * 60)
+          console.log('距离上次显示小时数:', hoursDiff)
+          
+          // 根据关闭次数决定间隔时间
+          let cooldownHours = 0.5; // 默认30分钟
+          if (dismissCount === 1) cooldownHours = 2; // 第一次关闭后2小时
+          if (dismissCount === 2) cooldownHours = 6; // 第二次关闭后6小时
+          
+          console.log('需要等待小时数:', cooldownHours)
+          
+          if (hoursDiff < cooldownHours) {
+            console.log(`❌ 需要等待${cooldownHours}小时后再显示`)
+            return false
+          }
         }
       }
 
-      // 临时修改：在所有设备上都显示（用于测试）
-      const shouldShow = true // deviceType.value === 'ios' || deviceType.value === 'android'
+      // 在移动设备和桌面都显示（桌面显示不同内容）
+      const shouldShow = true
       console.log('是否应该显示:', shouldShow)
       return shouldShow
     }
@@ -210,13 +228,17 @@ export default {
     // 关闭提示
     const closePrompt = () => {
       showPrompt.value = false
-      localStorage.setItem('install-prompt-dismissed', 'true')
+      const currentCount = parseInt(localStorage.getItem('install-prompt-dismiss-count') || '0')
+      localStorage.setItem('install-prompt-dismiss-count', (currentCount + 1).toString())
+      localStorage.setItem('install-prompt-last-shown', new Date().toISOString())
+      console.log('🔕 用户关闭提示，当前关闭次数:', currentCount + 1)
     }
 
     // 稍后提醒
     const remindLater = () => {
       showPrompt.value = false
       localStorage.setItem('install-prompt-last-shown', new Date().toISOString())
+      console.log('⏰ 用户选择稍后提醒')
     }
 
     onMounted(() => {
