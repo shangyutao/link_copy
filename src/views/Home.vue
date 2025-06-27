@@ -292,7 +292,7 @@ const features = ref([
   {
     name: '高清下载',
     description: '支持多种分辨率，保证视频质量',
-    icon: 'hd-o'
+    icon: 'down'
   },
   {
     name: '音频转文案',
