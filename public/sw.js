@@ -1,4 +1,4 @@
-const CACHE_NAME = 'link-copy-v1';
+const CACHE_NAME = 'link-copy-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -20,6 +20,11 @@ self.addEventListener('install', (event) => {
 
 // 拦截网络请求
 self.addEventListener('fetch', (event) => {
+  // 只处理http和https请求，忽略chrome扩展等其他协议
+  if (!event.request.url.startsWith('http')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -35,15 +40,25 @@ self.addEventListener('fetch', (event) => {
             return response;
           }
 
-          // 克隆响应
-          const responseToCache = response.clone();
+          // 只缓存同源请求，避免跨域问题
+          if (event.request.url.startsWith(self.location.origin)) {
+            // 克隆响应
+            const responseToCache = response.clone();
 
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              })
+              .catch((error) => {
+                console.warn('缓存失败:', error);
+              });
+          }
 
           return response;
+        }).catch((error) => {
+          console.warn('网络请求失败:', error);
+          // 如果网络请求失败，尝试从缓存返回
+          return caches.match(event.request);
         });
       })
   );
