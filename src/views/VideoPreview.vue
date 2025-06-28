@@ -115,8 +115,8 @@
             <div class="thumbnail-container">
               <!-- 如果有预览URL，显示视频播放器 -->
               <video 
-                v-if="currentTask?.previewUrl"
-                :src="currentTask.previewUrl"
+                v-if="getProxyPreviewUrl()"
+                :src="getProxyPreviewUrl()"
                 controls
                 preload="metadata"
                 class="video-player"
@@ -614,6 +614,24 @@ const getPreviewImage = () => {
   })
   
   return previewUrl || thumbnail || PLACEHOLDER_IMAGE
+}
+
+// 转换预览URL为代理URL
+const getProxyPreviewUrl = () => {
+  const previewUrl = currentTask.value?.previewUrl
+  if (!previewUrl) return null
+  
+  console.log('原始预览URL:', previewUrl)
+  
+  // 如果是HTTP URL，转换为代理路径
+  if (previewUrl.startsWith('http://47.109.155.18:2222/')) {
+    const proxyUrl = previewUrl.replace('http://47.109.155.18:2222', '')
+    console.log('转换后的代理URL:', proxyUrl)
+    return proxyUrl
+  }
+  
+  console.log('使用原始URL:', previewUrl)
+  return previewUrl
 }
 
 const handleImageError = (event) => {

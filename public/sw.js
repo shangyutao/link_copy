@@ -1,4 +1,4 @@
-const CACHE_NAME = 'link-copy-v7-proxy';
+const CACHE_NAME = 'link-copy-v8-video-proxy';
 const urlsToCache = [
   '/',
   '/index.html',
