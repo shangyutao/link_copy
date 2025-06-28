@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 
-const API_BASE_URL = 'https://47.109.155.18:2222/api'
+const API_BASE_URL = '/api'
 
 // 创建axios实例
 const api = axios.create({
