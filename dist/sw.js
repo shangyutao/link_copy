@@ -1,4 +1,4 @@
-const CACHE_NAME = 'link-copy-v4';
+const CACHE_NAME = 'link-copy-v5-https';
 const urlsToCache = [
   '/',
   '/index.html',

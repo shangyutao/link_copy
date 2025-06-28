@@ -50,6 +50,20 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
         console.log('✅ SW registered: ', registration)
+        
+        // 强制检查更新
+        registration.update()
+        
+        // 监听更新
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('🔄 New SW available, reloading...')
+              window.location.reload()
+            }
+          })
+        })
       })
       .catch((registrationError) => {
         console.log('❌ SW registration failed: ', registrationError)
