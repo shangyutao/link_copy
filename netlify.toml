@@ -8,6 +8,13 @@
   # Node.js版本
   NODE_VERSION = "18"
 
+# API代理 - 必须在SPA重定向之前
+[[redirects]]
+  from = "/api/*"
+  to = "http://47.109.155.18:2222/api/:splat"
+  status = 200
+  force = true
+
 # SPA路由支持
 [[redirects]]
   from = "/*"
@@ -28,10 +35,4 @@
 [[headers]]
   for = "/assets/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000"
-
-[[redirects]]
-  from = "/api/*"
-  to = "http://47.109.155.18:2222/api/:splat"
-  status = 200
-  force = true 
+    Cache-Control = "public, max-age=31536000" 
