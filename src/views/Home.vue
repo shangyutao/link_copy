@@ -24,11 +24,15 @@
         </div>
         
         <van-button 
-          class="history-btn btn-glass" 
-          icon="records"
-          @click="goToHistory"
+          :class="[
+            'install-btn', 
+            'btn-glass',
+            { 'auto-install': canAutoInstall && deviceType === 'android' }
+          ]"
+          :icon="canAutoInstall && deviceType === 'android' ? 'plus' : 'wap-home-o'"
+          @click="handleInstallClick"
         >
-          历史记录
+          {{ canAutoInstall && deviceType === 'android' ? '一键安装' : '添加到桌面' }}
         </van-button>
       </header>
 
@@ -171,6 +175,11 @@
         </div>
       </main>
     </div>
+    
+    <!-- 安装提示组件 -->
+    <InstallPrompt 
+      v-model="showInstallPrompt"
+    />
   </div>
 </template>
 
@@ -182,6 +191,7 @@ import { useTaskStore } from '@/stores/task'
 import { isValidUrl, detectPlatform } from '@/utils/validate'
 import { copyToClipboard, readFromClipboard } from '@/utils/clipboard'
 import { videoCleaner } from '@/services/video'
+import InstallPrompt from '@/components/InstallPrompt.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -197,6 +207,12 @@ const canceling = ref(false)
 const currentProgress = ref(0)
 const progressTimer = ref(null)
 const pollingTimer = ref(null)
+
+// 安装提示相关
+const showInstallPrompt = ref(false)
+const deviceType = ref('desktop')
+const deferredPrompt = ref(null)
+const canAutoInstall = ref(false)
 
 // 计算属性
 const isValidInput = computed(() => {
@@ -465,8 +481,70 @@ const stopPolling = () => {
   stopProgressAnimation()
 }
 
-const goToHistory = () => {
-  router.push('/history')
+// 检测设备类型
+const detectDevice = () => {
+  const userAgent = navigator.userAgent.toLowerCase()
+  
+  if (/iphone|ipad|ipod/.test(userAgent)) {
+    deviceType.value = 'ios'
+  } else if (/android/.test(userAgent)) {
+    deviceType.value = 'android'
+  } else {
+    deviceType.value = 'desktop'
+  }
+}
+
+// 处理安装按钮点击
+const handleInstallClick = async () => {
+  console.log('🎯 用户点击安装按钮')
+  console.log('设备类型:', deviceType.value)
+  console.log('是否支持自动安装:', canAutoInstall.value)
+  
+  // Android Chrome 且支持一键安装
+  if (canAutoInstall.value && deviceType.value === 'android' && deferredPrompt.value) {
+    try {
+      console.log('🚀 执行一键安装')
+      // 显示安装提示
+      deferredPrompt.value.prompt()
+      
+      // 等待用户响应
+      const { outcome } = await deferredPrompt.value.userChoice
+      console.log('用户选择:', outcome)
+      
+      if (outcome === 'accepted') {
+        console.log('✅ 用户接受了安装')
+        showToast({
+          message: '安装成功！请在桌面查看应用',
+          type: 'success',
+          duration: 3000
+        })
+      } else {
+        console.log('❌ 用户拒绝了安装')
+        showToast({
+          message: '安装已取消',
+          type: 'fail',
+          duration: 2000
+        })
+      }
+      
+      // 清除deferredPrompt，因为它只能使用一次
+      deferredPrompt.value = null
+      canAutoInstall.value = false
+    } catch (error) {
+      console.error('安装失败:', error)
+      showToast({
+        message: '安装失败，请手动添加到主屏幕',
+        type: 'fail',
+        duration: 3000
+      })
+      // 降级到显示手动指引
+      showInstallPrompt.value = true
+    }
+  } else {
+    // 其他情况显示安装指引
+    console.log('📱 显示安装指引')
+    showInstallPrompt.value = true
+  }
 }
 
 const getPlatformIcon = (platform) => {
@@ -486,6 +564,32 @@ onMounted(() => {
     console.log('页面刷新，清理之前的任务:', taskStore.currentTask.taskId)
     videoCleaner.cleanTask(taskStore.currentTask.taskId)
   }
+  
+  // 检测设备类型
+  detectDevice()
+  
+  // 监听PWA安装事件（主要是Android Chrome）
+  window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('🎯 检测到PWA安装提示事件')
+    // 阻止默认的安装提示
+    e.preventDefault()
+    // 保存事件，稍后使用
+    deferredPrompt.value = e
+    canAutoInstall.value = true
+    console.log('✅ 支持一键安装功能')
+  })
+
+  // 监听PWA安装完成事件
+  window.addEventListener('appinstalled', () => {
+    console.log('🎉 PWA安装完成')
+    deferredPrompt.value = null
+    canAutoInstall.value = false
+    showToast({
+      message: '应用安装成功！',
+      type: 'success',
+      duration: 3000
+    })
+  })
 })
 
 onUnmounted(() => {
@@ -607,14 +711,47 @@ watch(() => route.path, () => {
     }
   }
   
-  .history-btn {
+  .install-btn {
     @include glass-effect(0.15);
     color: $text-secondary;
     border: none;
+    font-weight: $font-medium;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    
+    // 添加渐变背景动画
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
     
     &:hover {
       @include glass-effect(0.25);
       color: $primary-color;
+      transform: translateY(-1px);
+      box-shadow: $shadow-glow;
+      
+      &::before {
+        left: 100%;
+      }
+    }
+    
+    // 特殊样式：当支持一键安装时
+    &.auto-install {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      
+      &:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        color: white;
+      }
     }
   }
 }

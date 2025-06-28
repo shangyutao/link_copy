@@ -1,5 +1,5 @@
 <template>
-  <div class="install-prompt-overlay" v-if="showPrompt" @click="closePrompt">
+  <div class="install-prompt-overlay" v-if="visible" @click="closePrompt">
     <div class="install-prompt" @click.stop>
       <!-- 关闭按钮 -->
       <div class="close-btn" @click="closePrompt">
@@ -168,15 +168,25 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 export default {
   name: 'InstallPrompt',
-  setup() {
+  props: {
+    modelValue: {
+      type: Boolean,
+      default: false
+    }
+  },
+  emits: ['update:modelValue', 'close'],
+  setup(props, { emit }) {
     const showPrompt = ref(false)
     const deviceType = ref('desktop')
     const deferredPrompt = ref(null)
     const canAutoInstall = ref(false)
+    
+    // 计算属性：显示状态
+    const visible = computed(() => props.modelValue || showPrompt.value)
 
     // 检测设备类型
     const detectDevice = () => {
@@ -254,17 +264,29 @@ export default {
     // 关闭提示
     const closePrompt = () => {
       showPrompt.value = false
-      const currentCount = parseInt(localStorage.getItem('install-prompt-dismiss-count') || '0')
-      localStorage.setItem('install-prompt-dismiss-count', (currentCount + 1).toString())
-      localStorage.setItem('install-prompt-last-shown', new Date().toISOString())
-      console.log('🔕 用户关闭提示，当前关闭次数:', currentCount + 1)
+      emit('update:modelValue', false)
+      emit('close')
+      
+      // 只有自动弹出的提示才记录关闭次数
+      if (!props.modelValue) {
+        const currentCount = parseInt(localStorage.getItem('install-prompt-dismiss-count') || '0')
+        localStorage.setItem('install-prompt-dismiss-count', (currentCount + 1).toString())
+        localStorage.setItem('install-prompt-last-shown', new Date().toISOString())
+        console.log('🔕 用户关闭提示，当前关闭次数:', currentCount + 1)
+      }
     }
 
     // 稍后提醒
     const remindLater = () => {
       showPrompt.value = false
-      localStorage.setItem('install-prompt-last-shown', new Date().toISOString())
-      console.log('⏰ 用户选择稍后提醒')
+      emit('update:modelValue', false)
+      emit('close')
+      
+      // 只有自动弹出的提示才记录稍后提醒
+      if (!props.modelValue) {
+        localStorage.setItem('install-prompt-last-shown', new Date().toISOString())
+        console.log('⏰ 用户选择稍后提醒')
+      }
     }
 
     // 一键安装功能（Android Chrome支持）
@@ -334,6 +356,7 @@ export default {
     })
 
     return {
+      visible,
       showPrompt,
       deviceType,
       canAutoInstall,
