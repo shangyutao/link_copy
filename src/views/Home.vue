@@ -712,7 +712,7 @@ watch(() => route.path, () => {
   }
   
   .install-btn {
-    @include glass-effect(0.15);
+    @include glass-effect(0.25);
     color: $text-secondary;
     border: none;
     font-weight: $font-medium;
@@ -733,7 +733,7 @@ watch(() => route.path, () => {
     }
     
     &:hover {
-      @include glass-effect(0.25);
+      @include glass-effect(0.4);
       color: $primary-color;
       transform: translateY(-1px);
       box-shadow: $shadow-glow;
@@ -766,12 +766,14 @@ watch(() => route.path, () => {
 .input-section {
   .input-card {
     @include card-style($shadow-floating);
+    @include glass-effect(0.25);
     padding: $space-2xl;
     transition: all 0.3s ease;
     
     &:hover {
       transform: translateY(-2px);
       box-shadow: $shadow-heavy;
+      @include glass-effect(0.35);
     }
     
     .input-header {
@@ -870,6 +872,7 @@ watch(() => route.path, () => {
 .progress-section {
   .progress-card {
     @include card-style($shadow-light, $bg-primary);
+    @include glass-effect(0.2);
     padding: $space-xl;
     border: 1px solid $border-light;
     
@@ -943,7 +946,15 @@ watch(() => route.path, () => {
   .platforms-card,
   .features-card {
     @include card-style($shadow-light);
+    @include glass-effect(0.2);
     padding: $space-xl;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      @include glass-effect(0.3);
+      transform: translateY(-2px);
+      box-shadow: $shadow-floating;
+    }
     
     .platforms-header,
     .features-header {
@@ -978,13 +989,13 @@ watch(() => route.path, () => {
     gap: $space-sm;
     padding: $space-lg;
     border-radius: $radius-lg;
-    background: $bg-tertiary;
+    @include glass-effect(0.15);
     transition: all 0.3s ease;
     
     &:hover {
       transform: translateY(-2px);
       box-shadow: $shadow-floating;
-      background: $bg-primary;
+      @include glass-effect(0.25);
     }
     
     .platform-icon {
@@ -1020,13 +1031,13 @@ watch(() => route.path, () => {
     gap: $space-md;
     padding: $space-lg;
     border-radius: $radius-lg;
-    background: $bg-tertiary;
+    @include glass-effect(0.15);
     transition: all 0.3s ease;
     
     &:hover {
       transform: translateY(-2px);
       box-shadow: $shadow-floating;
-      background: $bg-primary;
+      @include glass-effect(0.25);
     }
     
     .feature-icon {
