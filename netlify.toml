@@ -15,6 +15,13 @@
   status = 200
   force = true
 
+# 视频文件代理
+[[redirects]]
+  from = "/videos/*"
+  to = "http://47.109.155.18:2222/videos/:splat"
+  status = 200
+  force = true
+
 # SPA路由支持
 [[redirects]]
   from = "/*"
