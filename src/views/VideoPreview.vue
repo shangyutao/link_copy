@@ -115,8 +115,8 @@
             <div class="thumbnail-container">
               <!-- 如果有预览URL，显示视频播放器 -->
               <video 
-                v-if="getProxyPreviewUrl()"
-                :src="getProxyPreviewUrl()"
+                v-if="proxyPreviewUrl"
+                :src="proxyPreviewUrl"
                 controls
                 preload="metadata"
                 class="video-player"
@@ -616,8 +616,8 @@ const getPreviewImage = () => {
   return previewUrl || thumbnail || PLACEHOLDER_IMAGE
 }
 
-// 转换预览URL为代理URL
-const getProxyPreviewUrl = () => {
+// 转换预览URL为代理URL（计算属性）
+const proxyPreviewUrl = computed(() => {
   const previewUrl = currentTask.value?.previewUrl
   if (!previewUrl) return null
   
@@ -632,7 +632,7 @@ const getProxyPreviewUrl = () => {
   
   console.log('使用原始URL:', previewUrl)
   return previewUrl
-}
+})
 
 const handleImageError = (event) => {
   // 防止无限循环：如果已经是占位符图片，就不再重新设置
