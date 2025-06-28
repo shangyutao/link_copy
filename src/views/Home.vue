@@ -24,15 +24,11 @@
         </div>
         
         <van-button 
-          :class="[
-            'install-btn', 
-            'btn-glass',
-            { 'auto-install': canAutoInstall && deviceType === 'android' }
-          ]"
-          :icon="canAutoInstall && deviceType === 'android' ? 'plus' : 'wap-home-o'"
+          class="install-btn btn-glass"
+          icon="wap-home-o"
           @click="handleInstallClick"
         >
-          {{ canAutoInstall && deviceType === 'android' ? '一键安装' : '添加到桌面' }}
+          添加到桌面
         </van-button>
       </header>
 
@@ -500,10 +496,10 @@ const handleInstallClick = async () => {
   console.log('设备类型:', deviceType.value)
   console.log('是否支持自动安装:', canAutoInstall.value)
   
-  // Android Chrome 且支持一键安装
+  // 优先尝试Android Chrome的一键安装
   if (canAutoInstall.value && deviceType.value === 'android' && deferredPrompt.value) {
     try {
-      console.log('🚀 执行一键安装')
+      console.log('🚀 尝试一键安装')
       // 显示安装提示
       deferredPrompt.value.prompt()
       
@@ -518,33 +514,22 @@ const handleInstallClick = async () => {
           type: 'success',
           duration: 3000
         })
+        return // 安装成功，不再显示指引
       } else {
         console.log('❌ 用户拒绝了安装')
-        showToast({
-          message: '安装已取消',
-          type: 'fail',
-          duration: 2000
-        })
       }
       
       // 清除deferredPrompt，因为它只能使用一次
       deferredPrompt.value = null
       canAutoInstall.value = false
     } catch (error) {
-      console.error('安装失败:', error)
-      showToast({
-        message: '安装失败，请手动添加到主屏幕',
-        type: 'fail',
-        duration: 3000
-      })
-      // 降级到显示手动指引
-      showInstallPrompt.value = true
+      console.error('一键安装失败:', error)
     }
-  } else {
-    // 其他情况显示安装指引
-    console.log('📱 显示安装指引')
-    showInstallPrompt.value = true
   }
+  
+  // 显示安装指引（包括一键安装失败的情况）
+  console.log('📱 显示安装指引')
+  showInstallPrompt.value = true
 }
 
 const getPlatformIcon = (platform) => {
@@ -719,6 +704,8 @@ watch(() => route.path, () => {
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    white-space: nowrap; // 防止文字换行
+    min-width: 120px; // 确保按钮有足够宽度
     
     // 添加渐变背景动画
     &::before {
@@ -740,17 +727,6 @@ watch(() => route.path, () => {
       
       &::before {
         left: 100%;
-      }
-    }
-    
-    // 特殊样式：当支持一键安装时
-    &.auto-install {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      
-      &:hover {
-        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-        color: white;
       }
     }
   }

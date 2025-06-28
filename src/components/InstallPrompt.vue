@@ -78,6 +78,12 @@
             <van-icon name="android-o" size="16" />
             <span>Android</span>
           </div>
+
+          <!-- 一键安装提示 -->
+          <div v-if="canAutoInstall" class="auto-install-tip">
+            <van-icon name="star-o" size="20" color="#4285F4" />
+            <p>检测到支持一键安装！请点击下方绿色按钮</p>
+          </div>
           
           <div class="steps">
             <div class="step">
@@ -499,6 +505,24 @@ export default {
     margin: 0;
     font-size: 14px;
     color: #1976d2;
+    font-weight: 500;
+  }
+}
+
+.auto-install-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #e8f5e8;
+  border: 1px solid #c8e6c9;
+  border-radius: 8px;
+  margin-bottom: 20px;
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #2e7d32;
     font-weight: 500;
   }
 }
