@@ -1,0 +1,5 @@
+# Netlify API代理配置
+/api/*  http://47.109.155.18:2222/api/:splat  200
+
+# SPA路由回退
+/*    /index.html   200 

@@ -1,7 +1,13 @@
 import axios from 'axios'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 
-const API_BASE_URL = '/api'
+// 环境配置
+const isDevelopment = import.meta.env.DEV
+const API_BASE_URL = isDevelopment 
+  ? 'http://47.109.155.18:2222/api'  // 开发环境
+  : '/api'  // 生产环境使用相对路径
+
+console.log('API环境配置:', { isDevelopment, API_BASE_URL })
 
 // 创建axios实例
 const api = axios.create({
