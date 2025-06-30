@@ -35,314 +35,325 @@
     </van-nav-bar>
 
     <div class="page-content">
-      <!-- 状态卡片 -->
-      <div class="status-section animate-fade-in-up">
-        <div class="status-card card-floating" :class="statusClass">
-          <div class="status-content">
-            <div class="status-main">
-              <div class="status-icon">
-                <van-loading v-if="isProcessing" size="32px" color="white" />
-                <div v-else-if="isCompleted" class="success-icon">
-                  <van-icon name="checked" size="32px" />
+      <!-- 页面加载状态 -->
+      <div v-if="pageLoading" class="page-loading animate-fade-in">
+        <div class="loading-content">
+          <van-loading size="40px" color="#667eea" />
+          <p class="loading-text">正在加载视频信息...</p>
+        </div>
+      </div>
+      
+      <!-- 页面内容 -->
+      <template v-else>
+        <!-- 状态卡片 -->
+        <div class="status-section animate-fade-in-up">
+          <div class="status-card card-floating" :class="statusClass">
+            <div class="status-content">
+              <div class="status-main">
+                <div class="status-icon">
+                  <van-loading v-if="isProcessing" size="32px" color="white" />
+                  <div v-else-if="isCompleted" class="success-icon">
+                    <van-icon name="checked" size="32px" />
+                  </div>
+                  <div v-else-if="isFailed" class="error-icon">
+                    <van-icon name="close" size="32px" />
+                  </div>
+                  <div v-else class="pending-icon">
+                    <van-icon name="clock" size="32px" />
+                  </div>
                 </div>
-                <div v-else-if="isFailed" class="error-icon">
-                  <van-icon name="close" size="32px" />
-                </div>
-                <div v-else class="pending-icon">
-                  <van-icon name="clock" size="32px" />
+                <div class="status-text">
+                  <h3>{{ statusTitle }}</h3>
+                  <p>{{ statusDescription }}</p>
                 </div>
               </div>
-              <div class="status-text">
-                <h3>{{ statusTitle }}</h3>
-                <p>{{ statusDescription }}</p>
+              
+              <!-- 进度条 -->
+              <div v-if="isProcessing" class="progress-section">
+                <van-progress
+                  :percentage="currentProgress"
+                  stroke-width="8"
+                  color="rgba(255,255,255,0.9)"
+                  track-color="rgba(255,255,255,0.2)"
+                  class="progress-bar"
+                />
+                <div class="progress-info">
+                  <span class="progress-text">{{ currentProgress }}%</span>
+                  <span class="progress-detail">正在处理视频...</span>
+                </div>
+              </div>
+
+              <!-- 操作按钮 -->
+              <div class="status-actions">
+                <van-button 
+                  v-if="!isCompleted"
+                  size="small" 
+                  type="danger" 
+                  class="btn-glass"
+                  @click="handleCancel"
+                  :loading="canceling"
+                >
+                  <template #icon>
+                    <van-icon name="cross" />
+                  </template>
+                  取消任务
+                </van-button>
+                
+                <van-button 
+                  v-if="isFailed"
+                  size="small" 
+                  type="primary" 
+                  class="btn-glass"
+                  @click="handleRetry"
+                  :loading="retrying"
+                >
+                  <template #icon>
+                    <van-icon name="replay" />
+                  </template>
+                  重新尝试
+                </van-button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 视频信息卡片 -->
+        <div v-if="videoInfo" class="video-info-section animate-fade-in-up">
+          <div class="video-card card-floating">
+            <!-- 视频封面 -->
+            <div class="video-thumbnail">
+              <div class="thumbnail-container">
+                <!-- 如果有预览URL，显示视频播放器 -->
+                <video 
+                  v-if="proxyPreviewUrl"
+                  :src="proxyPreviewUrl"
+                  controls
+                  preload="metadata"
+                  class="video-player"
+                  @error="handleVideoError"
+                >
+                  您的浏览器不支持视频播放
+                </video>
+                
+                <!-- 否则显示缩略图 -->
+                <template v-else>
+                  <img 
+                    :src="getPreviewImage()" 
+                    :alt="videoInfo?.title || '视频预览'"
+                    @error="handleImageError"
+                    class="thumbnail-image"
+                  />
+                  <div class="play-overlay">
+                    <div class="play-button glow-effect">
+                      <van-icon name="play-circle" size="64px" />
+                    </div>
+                  </div>
+                </template>
+                <div v-if="videoInfo.duration" class="duration-badge">
+                  {{ formatTime(videoInfo.duration) }}
+                </div>
+                <div class="platform-badge">
+                  <span :style="{ color: getPlatformColor(platform) }">
+                    {{ getPlatformName(platform) }}
+                  </span>
+                </div>
               </div>
             </div>
             
-            <!-- 进度条 -->
-            <div v-if="isProcessing" class="progress-section">
-              <van-progress
-                :percentage="currentProgress"
-                stroke-width="8"
-                color="rgba(255,255,255,0.9)"
-                track-color="rgba(255,255,255,0.2)"
-                class="progress-bar"
-              />
-              <div class="progress-info">
-                <span class="progress-text">{{ currentProgress }}%</span>
-                <span class="progress-detail">正在处理视频...</span>
+            <!-- 视频信息 -->
+            <div class="video-details">
+              <h2 class="video-title">{{ videoInfo.title || '解析中...' }}</h2>
+              <div class="video-meta">
+                <div class="meta-row">
+                  <div class="meta-item">
+                    <van-icon name="user-o" />
+                    <span>{{ videoInfo.author || '未知作者' }}</span>
+                  </div>
+                  <div v-if="videoInfo.viewCount" class="meta-item">
+                    <van-icon name="eye-o" />
+                    <span>{{ formatNumber(videoInfo.viewCount) }} 次播放</span>
+                  </div>
+                </div>
+                <div class="meta-row">
+                  <div v-if="videoInfo.likeCount" class="meta-item">
+                    <van-icon name="like-o" />
+                    <span>{{ formatNumber(videoInfo.likeCount) }} 点赞</span>
+                  </div>
+                  <div v-if="videoInfo.duration" class="meta-item">
+                    <van-icon name="clock-o" />
+                    <span>{{ formatTime(videoInfo.duration) }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 视频描述 -->
+              <div v-if="videoInfo.description" class="video-description">
+                <h4>视频描述</h4>
+                <p>{{ videoInfo.description }}</p>
+              </div>
+              
+              <!-- 标签 -->
+              <div v-if="videoInfo.tags && videoInfo.tags.length" class="video-tags">
+                <van-tag 
+                  v-for="tag in videoInfo.tags.slice(0, 5)" 
+                  :key="tag" 
+                  size="mini"
+                  class="tag-item"
+                >
+                  {{ tag }}
+                </van-tag>
               </div>
             </div>
+          </div>
+        </div>
 
-            <!-- 操作按钮 -->
-            <div class="status-actions">
-              <van-button 
-                v-if="!isCompleted"
-                size="small" 
-                type="danger" 
-                class="btn-glass"
-                @click="handleCancel"
-                :loading="canceling"
-              >
-                <template #icon>
-                  <van-icon name="cross" />
-                </template>
-                取消任务
-              </van-button>
-              
-              <van-button 
-                v-if="isFailed"
-                size="small" 
-                type="primary" 
-                class="btn-glass"
+        <!-- 操作按钮区域 -->
+        <div class="action-section animate-fade-in-up">
+          <div v-if="isCompleted" class="action-buttons">
+            <van-button
+              type="primary"
+              size="large"
+              class="action-btn download-btn btn-primary"
+              @click="handleDownload"
+              :loading="downloading"
+            >
+              <template #icon>
+                <van-icon name="down" />
+              </template>
+              下载视频
+            </van-button>
+            
+            <van-button
+              type="success"
+              size="large"
+              class="action-btn transcribe-btn btn-accent"
+              @click="handleTranscribe"
+              :loading="transcribing"
+            >
+              <template #icon>
+                <van-icon name="volume-o" />
+              </template>
+              转换文案
+            </van-button>
+          </div>
+          
+          <div v-else-if="isProcessing" class="processing-info">
+            <div class="processing-card card-glass">
+              <van-loading size="24px" color="#667eea" />
+              <span>正在处理视频，请耐心等待...</span>
+            </div>
+          </div>
+          
+          <div v-else-if="isFailed" class="error-info">
+            <div class="error-card card-floating">
+              <van-icon name="warning-o" size="24px" color="#ef4444" />
+              <span>处理失败，请重试或返回重新选择视频</span>
+              <van-button
+                type="warning"
+                size="small"
                 @click="handleRetry"
                 :loading="retrying"
               >
-                <template #icon>
-                  <van-icon name="replay" />
-                </template>
                 重新尝试
               </van-button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 视频信息卡片 -->
-      <div v-if="videoInfo" class="video-info-section animate-fade-in-up">
-        <div class="video-card card-floating">
-          <!-- 视频封面 -->
-          <div class="video-thumbnail">
-            <div class="thumbnail-container">
-              <!-- 如果有预览URL，显示视频播放器 -->
-              <video 
-                v-if="proxyPreviewUrl"
-                :src="proxyPreviewUrl"
-                controls
-                preload="metadata"
-                class="video-player"
-                @error="handleVideoError"
+        <!-- 转文案结果 -->
+        <div v-if="transcriptionResult" class="transcription-section animate-fade-in-up">
+          <div class="transcription-card card-floating">
+            <div class="transcription-header">
+              <h3>
+                <van-icon name="chat-o" />
+                提取的文案
+              </h3>
+              <van-button 
+                size="small" 
+                type="primary" 
+                class="btn-glass"
+                @click="optimizeText"
+                :loading="optimizing"
               >
-                您的浏览器不支持视频播放
-              </video>
-              
-              <!-- 否则显示缩略图 -->
-              <template v-else>
-                <img 
-                  :src="getPreviewImage()" 
-                  :alt="videoInfo?.title || '视频预览'"
-                  @error="handleImageError"
-                  class="thumbnail-image"
-                />
-                <div class="play-overlay">
-                  <div class="play-button glow-effect">
-                    <van-icon name="play-circle" size="64px" />
+                <van-icon name="fire" />
+                AI优化
+              </van-button>
+            </div>
+            
+            <div class="transcription-content">
+              <div class="text-card original-text">
+                <div class="text-header">
+                  <h4>原始文案</h4>
+                  <van-tag size="mini" color="#f3f4f6" text-color="#6b7280">原始</van-tag>
+                </div>
+                <div class="text-content">
+                  <p>{{ transcriptionResult.text }}</p>
+                  <div class="text-meta">
+                    <span>时长: {{ formatTime(transcriptionResult.duration) }}</span>
+                    <span>{{ transcriptionResult.createTime | formatDate }}</span>
                   </div>
                 </div>
-              </template>
-              <div v-if="videoInfo.duration" class="duration-badge">
-                {{ formatTime(videoInfo.duration) }}
               </div>
-              <div class="platform-badge">
-                <span :style="{ color: getPlatformColor(platform) }">
-                  {{ getPlatformName(platform) }}
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 视频信息 -->
-          <div class="video-details">
-            <h2 class="video-title">{{ videoInfo.title || '解析中...' }}</h2>
-            <div class="video-meta">
-              <div class="meta-row">
-                <div class="meta-item">
-                  <van-icon name="user-o" />
-                  <span>{{ videoInfo.author || '未知作者' }}</span>
+              
+              <div v-if="optimizedText" class="text-card optimized-text">
+                <div class="text-header">
+                  <h4>AI优化文案</h4>
+                  <van-tag size="mini" type="success">优化</van-tag>
                 </div>
-                <div v-if="videoInfo.viewCount" class="meta-item">
-                  <van-icon name="eye-o" />
-                  <span>{{ formatNumber(videoInfo.viewCount) }} 次播放</span>
-                </div>
-              </div>
-              <div class="meta-row">
-                <div v-if="videoInfo.likeCount" class="meta-item">
-                  <van-icon name="like-o" />
-                  <span>{{ formatNumber(videoInfo.likeCount) }} 点赞</span>
-                </div>
-                <div v-if="videoInfo.duration" class="meta-item">
-                  <van-icon name="clock-o" />
-                  <span>{{ formatTime(videoInfo.duration) }}</span>
+                <div class="text-content">
+                  <p>{{ optimizedText }}</p>
+                  <div class="text-meta">
+                    <span>由AI智能优化</span>
+                  </div>
                 </div>
               </div>
             </div>
             
-            <!-- 视频描述 -->
-            <div v-if="videoInfo.description" class="video-description">
-              <h4>视频描述</h4>
-              <p>{{ videoInfo.description }}</p>
-            </div>
-            
-            <!-- 标签 -->
-            <div v-if="videoInfo.tags && videoInfo.tags.length" class="video-tags">
-              <van-tag 
-                v-for="tag in videoInfo.tags.slice(0, 5)" 
-                :key="tag" 
-                size="mini"
-                class="tag-item"
+            <div class="transcription-actions">
+              <van-button 
+                class="btn-glass"
+                @click="copyText(optimizedText || transcriptionResult.text)"
               >
-                {{ tag }}
-              </van-tag>
+                <template #icon>
+                  <van-icon name="copy" />
+                </template>
+                复制文案
+              </van-button>
+              
+              <van-button 
+                class="btn-glass"
+                @click="shareText(optimizedText || transcriptionResult.text)"
+              >
+                <template #icon>
+                  <van-icon name="share" />
+                </template>
+                分享
+              </van-button>
+              
+              <van-button 
+                class="btn-glass"
+                @click="exportText(optimizedText || transcriptionResult.text)"
+              >
+                <template #icon>
+                  <van-icon name="down" />
+                </template>
+                导出
+              </van-button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 操作按钮区域 -->
-      <div class="action-section animate-fade-in-up">
-        <div v-if="isCompleted" class="action-buttons">
-          <van-button
-            type="primary"
-            size="large"
-            class="action-btn download-btn btn-primary"
-            @click="handleDownload"
-            :loading="downloading"
-          >
-            <template #icon>
-              <van-icon name="down" />
-            </template>
-            下载视频
-          </van-button>
-          
-          <van-button
-            type="success"
-            size="large"
-            class="action-btn transcribe-btn btn-accent"
-            @click="handleTranscribe"
-            :loading="transcribing"
-          >
-            <template #icon>
-              <van-icon name="volume-o" />
-            </template>
-            转换文案
-          </van-button>
+        <!-- 错误信息 -->
+        <div v-if="errorMessage" class="error-section animate-fade-in-up">
+          <van-notice-bar
+            type="danger"
+            :text="errorMessage"
+            left-icon="warning-o"
+            @click="clearError"
+            class="error-notice"
+          />
         </div>
-        
-        <div v-else-if="isProcessing" class="processing-info">
-          <div class="processing-card card-glass">
-            <van-loading size="24px" color="#667eea" />
-            <span>正在处理视频，请耐心等待...</span>
-          </div>
-        </div>
-        
-        <div v-else-if="isFailed" class="error-info">
-          <div class="error-card card-floating">
-            <van-icon name="warning-o" size="24px" color="#ef4444" />
-            <span>处理失败，请重试或返回重新选择视频</span>
-            <van-button
-              type="warning"
-              size="small"
-              @click="handleRetry"
-              :loading="retrying"
-            >
-              重新尝试
-            </van-button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 转文案结果 -->
-      <div v-if="transcriptionResult" class="transcription-section animate-fade-in-up">
-        <div class="transcription-card card-floating">
-          <div class="transcription-header">
-            <h3>
-              <van-icon name="chat-o" />
-              提取的文案
-            </h3>
-            <van-button 
-              size="small" 
-              type="primary" 
-              class="btn-glass"
-              @click="optimizeText"
-              :loading="optimizing"
-            >
-              <van-icon name="fire" />
-              AI优化
-            </van-button>
-          </div>
-          
-          <div class="transcription-content">
-            <div class="text-card original-text">
-              <div class="text-header">
-                <h4>原始文案</h4>
-                <van-tag size="mini" color="#f3f4f6" text-color="#6b7280">原始</van-tag>
-              </div>
-              <div class="text-content">
-                <p>{{ transcriptionResult.text }}</p>
-                <div class="text-meta">
-                  <span>时长: {{ formatTime(transcriptionResult.duration) }}</span>
-                  <span>{{ transcriptionResult.createTime | formatDate }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div v-if="optimizedText" class="text-card optimized-text">
-              <div class="text-header">
-                <h4>AI优化文案</h4>
-                <van-tag size="mini" type="success">优化</van-tag>
-              </div>
-              <div class="text-content">
-                <p>{{ optimizedText }}</p>
-                <div class="text-meta">
-                  <span>由AI智能优化</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="transcription-actions">
-            <van-button 
-              class="btn-glass"
-              @click="copyText(optimizedText || transcriptionResult.text)"
-            >
-              <template #icon>
-                <van-icon name="copy" />
-              </template>
-              复制文案
-            </van-button>
-            
-            <van-button 
-              class="btn-glass"
-              @click="shareText(optimizedText || transcriptionResult.text)"
-            >
-              <template #icon>
-                <van-icon name="share" />
-              </template>
-              分享
-            </van-button>
-            
-            <van-button 
-              class="btn-glass"
-              @click="exportText(optimizedText || transcriptionResult.text)"
-            >
-              <template #icon>
-                <van-icon name="down" />
-              </template>
-              导出
-            </van-button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 错误信息 -->
-      <div v-if="errorMessage" class="error-section animate-fade-in-up">
-        <van-notice-bar
-          type="danger"
-          :text="errorMessage"
-          left-icon="warning-o"
-          @click="clearError"
-          class="error-notice"
-        />
-      </div>
+      </template>
     </div>
   </div>
 </template>
@@ -371,6 +382,7 @@ const transcribing = ref(false)
 const retrying = ref(false)
 const canceling = ref(false)
 const optimizing = ref(false)
+const pageLoading = ref(true)
 const errorMessage = ref('')
 const transcriptionResult = ref(null)
 const optimizedText = ref('')
@@ -621,7 +633,9 @@ const proxyPreviewUrl = computed(() => {
   const previewUrl = currentTask.value?.previewUrl
   if (!previewUrl) return null
   
+  console.log('=== 视频URL处理调试 ===')
   console.log('原始预览URL:', previewUrl)
+  console.log('当前环境:', import.meta.env.DEV ? '开发环境' : '生产环境')
   
   // 环境判断
   const isDevelopment = import.meta.env.DEV
@@ -646,6 +660,7 @@ const proxyPreviewUrl = computed(() => {
     }
     // 如果已经是相对路径，直接使用（通过Netlify代理）
     console.log('生产环境 - 使用代理路径:', previewUrl)
+    console.log('视频将通过Netlify代理访问:', window.location.origin + previewUrl)
     return previewUrl
   }
 })
@@ -666,8 +681,22 @@ const handleImageError = (event) => {
 }
 
 const handleVideoError = (event) => {
-  console.error('视频加载失败:', event)
-  showToast('视频加载失败，请重试')
+  console.error('=== 视频加载失败调试 ===')
+  console.error('视频URL:', event.target.src)
+  console.error('错误事件:', event)
+  console.error('错误详情:', event.target.error)
+  
+  // 尝试检查视频是否可访问
+  fetch(event.target.src, { method: 'HEAD' })
+    .then(response => {
+      console.log('视频文件HTTP状态:', response.status)
+      console.log('视频文件响应头:', response.headers)
+    })
+    .catch(error => {
+      console.error('视频文件访问失败:', error)
+    })
+  
+  showToast('视频加载失败，请检查网络连接或稍后重试')
 }
 
 const getPlatformName = (platform) => {
@@ -701,28 +730,44 @@ onMounted(async () => {
     videoCleaner.setCurrentTask(taskId.value)
     
     try {
-      // 尝试从存储中恢复任务
+      // 优化：先尝试从存储中恢复任务，如果有就直接使用
       const restoredTask = await taskStore.restoreTaskFromStorage(taskId.value)
       console.log('恢复的任务:', restoredTask)
       
-      // 如果没有当前任务或任务过时，刷新状态
-      if (!currentTask.value || !currentTask.value.taskId) {
-        console.log('没有当前任务，开始刷新状态')
-        await refreshStatus()
-      } else {
-        console.log('已有任务数据:', currentTask.value)
+      // 如果恢复的任务已经完成，立即尝试加载预览信息（不等待refreshStatus）
+      if (currentTask.value?.status === 'completed') {
+        console.log('任务已完成，立即加载预览信息')
+        // 不等待，让预览信息在后台加载
+        loadPreviewInfo().catch(error => {
+          console.error('后台加载预览信息失败:', error)
+        })
       }
       
-      // 如果任务已完成，获取预览信息
-      if (currentTask.value?.status === 'completed') {
-        await loadPreviewInfo()
+      // 如果没有当前任务，再进行刷新状态（这通常只在异常情况下才需要）
+      if (!currentTask.value || !currentTask.value.taskId) {
+        console.log('没有当前任务，需要刷新状态')
+        await refreshStatus()
+      } else {
+        console.log('已有任务数据，跳过状态刷新')
+        
+        // 如果任务状态不是completed但恢复的任务可能过期，在后台刷新状态
+        if (currentTask.value.status !== 'completed') {
+          console.log('任务未完成，后台刷新状态')
+          refreshStatus().catch(error => {
+            console.error('后台刷新状态失败:', error)
+          })
+        }
       }
     } catch (error) {
       console.error('初始化任务失败:', error)
       errorMessage.value = '加载任务失败，请刷新页面重试'
+    } finally {
+      // 确保无论成功失败都停止加载状态
+      pageLoading.value = false
     }
   } else {
     errorMessage.value = '无效的任务ID'
+    pageLoading.value = false
   }
 })
 
@@ -843,6 +888,24 @@ onBeforeUnmount(() => {
   
   @include respond-to('md') {
     padding: $space-xl;
+  }
+  
+  // 页面加载状态
+  .page-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    
+    .loading-content {
+      text-align: center;
+      
+      .loading-text {
+        margin-top: $space-lg;
+        color: $text-secondary;
+        font-size: $font-base;
+      }
+    }
   }
 }
 
