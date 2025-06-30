@@ -623,15 +623,31 @@ const proxyPreviewUrl = computed(() => {
   
   console.log('原始预览URL:', previewUrl)
   
-  // 如果是HTTP URL，转换为代理路径
-  if (previewUrl.startsWith('http://47.109.155.18:2222/')) {
-    const proxyUrl = previewUrl.replace('http://47.109.155.18:2222', '')
-    console.log('转换后的代理URL:', proxyUrl)
-    return proxyUrl
-  }
+  // 环境判断
+  const isDevelopment = import.meta.env.DEV
   
-  console.log('使用原始URL:', previewUrl)
-  return previewUrl
+  if (isDevelopment) {
+    // 开发环境：如果是相对路径，转换为完整URL
+    if (previewUrl.startsWith('/videos/')) {
+      const fullUrl = `http://47.109.155.18:2222${previewUrl}`
+      console.log('开发环境 - 转换为完整URL:', fullUrl)
+      return fullUrl
+    }
+    // 如果已经是完整URL，直接使用
+    console.log('开发环境 - 使用原始URL:', previewUrl)
+    return previewUrl
+  } else {
+    // 生产环境：使用Netlify代理
+    if (previewUrl.startsWith('http://47.109.155.18:2222/')) {
+      // 如果是完整URL，转换为代理路径
+      const proxyUrl = previewUrl.replace('http://47.109.155.18:2222', '')
+      console.log('生产环境 - 转换为代理URL:', proxyUrl)
+      return proxyUrl
+    }
+    // 如果已经是相对路径，直接使用（通过Netlify代理）
+    console.log('生产环境 - 使用代理路径:', previewUrl)
+    return previewUrl
+  }
 })
 
 const handleImageError = (event) => {
