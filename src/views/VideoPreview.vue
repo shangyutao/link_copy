@@ -659,7 +659,8 @@ const getPlatformName = (platform) => {
     'douyin': '抖音',
     'bilibili': '哔哩哔哩',
     'youtube': 'YouTube',
-    'tiktok': 'TikTok'
+    'tiktok': 'TikTok',
+    'upload': '文件上传'
   }
   return platformMap[platform] || platform
 }
@@ -669,7 +670,8 @@ const getPlatformColor = (platform) => {
     'douyin': '#ff0050',
     'bilibili': '#00a1d6',
     'youtube': '#ff0000',
-    'tiktok': '#000000'
+    'tiktok': '#000000',
+    'upload': '#667eea'
   }
   return colorMap[platform] || '#667eea'
 }

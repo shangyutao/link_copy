@@ -92,6 +92,58 @@ export const useTaskStore = defineStore('task', () => {
   }
 
   /**
+   * 创建文件上传任务
+   */
+  const createUploadTask = async (file, onProgress = null) => {
+    isLoading.value = true
+    
+    try {
+      // 先清理之前的任务
+      await cleanupCurrentTask()
+      
+      const response = await videoApi.uploadVideoFile(file, onProgress)
+      
+      // 设置当前任务
+      currentTask.value = {
+        taskId: response.taskId,
+        originalFile: file,
+        fileName: file.name,
+        fileSize: file.size,
+        platform: 'upload', // 标记为上传类型
+        status: response.status,
+        progress: 0,
+        createTime: response.createTime || new Date().toISOString(),
+        isExisting: response.isExisting || false
+      }
+      
+      // 设置清理器的当前任务
+      videoCleaner.setCurrentTask(response.taskId)
+      
+      // 保存到本地存储（不保存文件对象）
+      const taskForStorage = {
+        ...currentTask.value,
+        originalFile: null // 不保存文件对象到localStorage
+      }
+      await saveTaskToStorage(taskForStorage)
+      
+      // 添加到历史记录
+      addToHistory(taskForStorage)
+      
+      // 开始轮询状态
+      if (isProcessing.value) {
+        startPolling(response.taskId)
+      }
+      
+      return response
+    } catch (error) {
+      console.error('创建上传任务失败:', error)
+      throw error
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
    * 刷新任务状态
    */
   const refreshTaskStatus = async (taskId) => {
@@ -523,6 +575,7 @@ export const useTaskStore = defineStore('task', () => {
     
     // 方法
     createTask,
+    createUploadTask,
     refreshTaskStatus,
     updateTaskStatus,
     updateCurrentTask,

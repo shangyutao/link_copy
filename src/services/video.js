@@ -19,6 +19,73 @@ export const videoApi = {
   },
 
   /**
+   * 上传视频文件
+   * @param {File} file - 视频文件
+   * @param {Function} onProgress - 上传进度回调
+   * @returns {Promise<Object>} 任务信息
+   */
+  async uploadVideoFile(file, onProgress = null) {
+    // 参数验证
+    if (!file || !(file instanceof File)) {
+      throw new Error('请选择有效的视频文件')
+    }
+
+    // 文件大小验证（500MB限制）
+    const MAX_SIZE = 500 * 1024 * 1024 // 500MB
+    if (file.size > MAX_SIZE) {
+      throw new Error(`文件大小不能超过500MB，当前文件大小：${this.formatFileSize(file.size)}`)
+    }
+
+    // 文件类型验证
+    const supportedTypes = [
+      'video/mp4', 'video/avi', 'video/quicktime', 'video/x-msvideo',
+      'video/x-flv', 'video/webm', 'video/x-matroska', 'video/mp4v-es',
+      'video/3gpp', 'video/ogg'
+    ]
+    
+    const supportedExtensions = [
+      '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv', '.m4v', '.3gp', '.ogv'
+    ]
+    
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
+    
+    if (!supportedTypes.includes(file.type) && !supportedExtensions.includes(fileExtension)) {
+      throw new Error('不支持的视频格式，请上传 MP4、AVI、MOV、WMV、FLV、WEBM、MKV、M4V、3GP、OGV 格式的视频文件')
+    }
+
+    // 创建FormData
+    const formData = new FormData()
+    formData.append('video', file)
+
+    // 配置请求选项
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 300000, // 5分钟超时
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          onProgress(progress)
+        }
+      }
+    }
+
+    try {
+      const response = await api.post('/video/upload', formData, config)
+      return response.data
+    } catch (error) {
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('上传超时，请检查网络连接或尝试上传更小的文件')
+      }
+      if (error.response?.status === 413) {
+        throw new Error('文件过大，请上传小于500MB的视频文件')
+      }
+      throw error
+    }
+  },
+
+  /**
    * 查询任务状态
    * @param {string} taskId - 任务ID
    * @returns {Promise<Object>} 任务状态信息

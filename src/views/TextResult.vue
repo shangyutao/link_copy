@@ -361,6 +361,7 @@ const getPlatformColor = (platform) => {
     'douyin': '#ff6b6b',
     'bilibili': '#fb7299',
     'youtube': '#ff0000',
+    'upload': '#667eea',
     'default': '#666eea'
   }
   return colorMap[platform] || colorMap.default
@@ -371,6 +372,7 @@ const getPlatformName = (platform) => {
     'douyin': '抖音',
     'bilibili': '哔哩哔哩',
     'youtube': 'YouTube',
+    'upload': '文件上传',
     'default': '未知平台'
   }
   return nameMap[platform] || nameMap.default

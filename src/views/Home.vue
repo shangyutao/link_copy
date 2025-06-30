@@ -37,57 +37,170 @@
         <!-- 输入区域 -->
         <div class="input-section animate-fade-in-up">
           <div class="input-card card-floating">
-            <div class="input-header">
-              <h2>粘贴视频链接</h2>
-              <p>支持抖音、哔哩哔哩等主流视频平台</p>
-            </div>
-            
-            <div class="input-area">
-              <van-field
-                v-model="inputUrl"
-                type="textarea"
-                placeholder="在此粘贴视频链接或分享文本..."
-                rows="3"
-                maxlength="2000"
-                :disabled="isInputDisabled"
-                class="url-input"
-                @update:model-value="onInputChange"
-                @focus="onInputFocus"
-                @blur="onInputBlur"
-              />
-              
-              <div class="input-actions">
-                <van-button 
-                  v-if="clipboardSupported"
-                  class="paste-btn btn-glass"
-                  icon="add-o"
-                  @click="pasteFromClipboard"
-                  :loading="pasting"
+            <!-- 选项卡切换 -->
+            <div class="tab-switcher">
+              <div class="tab-buttons">
+                <button 
+                  :class="['tab-button', { active: activeTab === 'link' }]"
+                  @click="switchTab('link')"
                 >
-                  粘贴
-                </van-button>
-                
-                <van-button
-                  type="primary"
-                  class="submit-btn btn-primary"
-                  :loading="submitting"
-                  :disabled="!isValidInput || isInputDisabled"
-                  @click="handleSubmit"
+                  <van-icon name="link" />
+                  <span>链接解析</span>
+                </button>
+                <button 
+                  :class="['tab-button', { active: activeTab === 'upload' }]"
+                  @click="switchTab('upload')"
                 >
-                  <template #icon>
-                    <van-icon name="play-circle" />
-                  </template>
-                  开始解析
-                </van-button>
+                  <van-icon name="upgrade" />
+                  <span>文件上传</span>
+                </button>
               </div>
             </div>
-            
-            <!-- 平台检测提示 -->
-            <div v-if="detectedPlatform" class="platform-hint">
-              <van-tag type="primary" class="platform-tag">
-                <van-icon :name="getPlatformIcon(detectedPlatform)" />
-                检测到：{{ getPlatformName(detectedPlatform) }}
-              </van-tag>
+
+            <!-- 链接解析界面 -->
+            <div v-if="activeTab === 'link'" class="tab-content">
+              <div class="input-header">
+                <h2>粘贴视频链接</h2>
+                <p>支持抖音、哔哩哔哩等主流视频平台</p>
+              </div>
+              
+              <div class="input-area">
+                <van-field
+                  v-model="inputUrl"
+                  type="textarea"
+                  placeholder="在此粘贴视频链接或分享文本..."
+                  rows="3"
+                  maxlength="2000"
+                  :disabled="isInputDisabled"
+                  class="url-input"
+                  @update:model-value="onInputChange"
+                  @focus="onInputFocus"
+                  @blur="onInputBlur"
+                />
+                
+                <div class="input-actions">
+                  <van-button 
+                    v-if="clipboardSupported"
+                    class="paste-btn btn-glass"
+                    icon="add-o"
+                    @click="pasteFromClipboard"
+                    :loading="pasting"
+                  >
+                    粘贴
+                  </van-button>
+                  
+                  <van-button
+                    type="primary"
+                    class="submit-btn btn-primary"
+                    :loading="submitting"
+                    :disabled="!isValidInput || isInputDisabled"
+                    @click="handleSubmit"
+                  >
+                    <template #icon>
+                      <van-icon name="play-circle" />
+                    </template>
+                    开始解析
+                  </van-button>
+                </div>
+              </div>
+              
+              <!-- 平台检测提示 -->
+              <div v-if="detectedPlatform" class="platform-hint">
+                <van-tag type="primary" class="platform-tag">
+                  <van-icon :name="getPlatformIcon(detectedPlatform)" />
+                  检测到：{{ getPlatformName(detectedPlatform) }}
+                </van-tag>
+              </div>
+            </div>
+
+            <!-- 文件上传界面 -->
+            <div v-if="activeTab === 'upload'" class="tab-content">
+              <div class="input-header">
+                <h2>上传视频文件</h2>
+                <p>支持 MP4、AVI、MOV 等格式，文件大小不超过 500MB</p>
+              </div>
+              
+              <div class="upload-area">
+                <!-- 文件拖拽区域 -->
+                <div 
+                  class="upload-dropzone"
+                  :class="{ 
+                    'dragover': isDragOver, 
+                    'has-file': selectedFile,
+                    'disabled': isInputDisabled 
+                  }"
+                  @click="triggerFileSelect"
+                  @dragover.prevent="handleDragOver"
+                  @dragleave.prevent="handleDragLeave"
+                  @drop.prevent="handleFileDrop"
+                >
+                  <input 
+                    ref="fileInput"
+                    type="file"
+                    accept="video/*,.mp4,.avi,.mov,.wmv,.flv,.webm,.mkv,.m4v,.3gp,.ogv"
+                    @change="handleFileSelect"
+                    style="display: none"
+                    :disabled="isInputDisabled"
+                  />
+                  
+                  <div v-if="!selectedFile" class="upload-prompt">
+                    <div class="upload-icon">
+                      <van-icon name="plus" size="48px" />
+                    </div>
+                    <h3>点击选择或拖拽视频文件</h3>
+                    <p>支持 MP4、AVI、MOV、WMV、FLV、WEBM、MKV、M4V、3GP、OGV</p>
+                    <p class="size-hint">文件大小限制：500MB</p>
+                  </div>
+                  
+                  <div v-else class="file-preview">
+                    <div class="file-icon">
+                      <van-icon name="video-o" size="48px" />
+                    </div>
+                    <div class="file-info">
+                      <h4>{{ selectedFile.name }}</h4>
+                      <p>{{ formatFileSize(selectedFile.size) }}</p>
+                    </div>
+                    <van-button 
+                      size="small" 
+                      type="danger" 
+                      plain
+                      @click.stop="removeSelectedFile"
+                    >
+                      移除
+                    </van-button>
+                  </div>
+                </div>
+                
+                <!-- 上传操作按钮 -->
+                <div class="upload-actions">
+                  <van-button
+                    type="primary"
+                    class="upload-btn btn-primary"
+                    :loading="uploading"
+                    :disabled="!selectedFile || isInputDisabled"
+                    @click="handleFileUpload"
+                  >
+                    <template #icon>
+                      <van-icon name="upgrade" />
+                    </template>
+                    开始上传
+                  </van-button>
+                </div>
+                
+                <!-- 上传进度 -->
+                <div v-if="uploadProgress > 0 && uploading" class="upload-progress">
+                  <div class="progress-info">
+                    <span>上传进度</span>
+                    <span>{{ uploadProgress }}%</span>
+                  </div>
+                  <van-progress
+                    :percentage="uploadProgress"
+                    stroke-width="8"
+                    color="#667eea"
+                    track-color="rgba(102, 126, 234, 0.1)"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -204,6 +317,14 @@ const currentProgress = ref(0)
 const progressTimer = ref(null)
 const pollingTimer = ref(null)
 
+// 文件上传相关
+const activeTab = ref('link') // 当前激活的选项卡
+const selectedFile = ref(null) // 选中的文件
+const uploading = ref(false) // 上传状态
+const uploadProgress = ref(0) // 上传进度
+const isDragOver = ref(false) // 拖拽状态
+const fileInput = ref(null) // 文件input引用
+
 // 安装提示相关
 const showInstallPrompt = ref(false)
 const deviceType = ref('desktop')
@@ -217,7 +338,7 @@ const isValidInput = computed(() => {
 })
 
 const isInputDisabled = computed(() => {
-  return isProcessing.value || submitting.value || taskStore.isDownloading
+  return isProcessing.value || submitting.value || uploading.value || taskStore.isDownloading
 })
 
 const clipboardSupported = computed(() => {
@@ -291,6 +412,12 @@ const supportedPlatforms = ref([
     displayName: '哔哩哔哩',
     icon: 'video-o',
     color: '#fb7299'
+  },
+  {
+    name: 'upload',
+    displayName: '文件上传',
+    icon: 'upgrade',
+    color: '#667eea'
   }
 ])
 
@@ -300,6 +427,11 @@ const features = ref([
     name: '智能解析',
     description: '自动识别视频平台，快速解析下载链接',
     icon: 'search'
+  },
+  {
+    name: '文件上传',
+    description: '直接上传本地视频文件，支持多种格式',
+    icon: 'upgrade'
   },
   {
     name: '高清下载',
@@ -542,6 +674,131 @@ const getPlatformName = (platform) => {
   return platformConfig?.displayName || platform
 }
 
+// 文件上传相关方法
+const switchTab = (tab) => {
+  activeTab.value = tab
+  // 切换选项卡时重置状态
+  if (tab === 'link') {
+    resetFileUpload()
+  } else {
+    inputUrl.value = ''
+    detectedPlatform.value = ''
+  }
+}
+
+const resetFileUpload = () => {
+  selectedFile.value = null
+  uploadProgress.value = 0
+  isDragOver.value = false
+}
+
+const triggerFileSelect = () => {
+  if (!isInputDisabled.value && fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    validateAndSetFile(file)
+  }
+}
+
+const handleFileDrop = (event) => {
+  isDragOver.value = false
+  if (isInputDisabled.value) return
+  
+  const files = event.dataTransfer.files
+  if (files.length > 0) {
+    validateAndSetFile(files[0])
+  }
+}
+
+const handleDragOver = () => {
+  if (!isInputDisabled.value) {
+    isDragOver.value = true
+  }
+}
+
+const handleDragLeave = () => {
+  isDragOver.value = false
+}
+
+const validateAndSetFile = (file) => {
+  // 文件大小验证（500MB）
+  const maxSize = 500 * 1024 * 1024
+  if (file.size > maxSize) {
+    showToast(`文件大小不能超过500MB，当前文件：${formatFileSize(file.size)}`)
+    return
+  }
+  
+  // 文件类型验证
+  const supportedTypes = [
+    'video/mp4', 'video/avi', 'video/quicktime', 'video/x-msvideo',
+    'video/x-flv', 'video/webm', 'video/x-matroska', 'video/mp4v-es',
+    'video/3gpp', 'video/ogg'
+  ]
+  
+  const supportedExtensions = [
+    '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv', '.m4v', '.3gp', '.ogv'
+  ]
+  
+  const fileName = file.name.toLowerCase()
+  const fileExtension = fileName.substring(fileName.lastIndexOf('.'))
+  
+  if (!supportedTypes.includes(file.type) && !supportedExtensions.includes(fileExtension)) {
+    showToast('不支持的视频格式，请上传 MP4、AVI、MOV、WMV、FLV、WEBM、MKV、M4V、3GP、OGV 格式的视频文件')
+    return
+  }
+  
+  selectedFile.value = file
+  showToast('文件选择成功')
+}
+
+const removeSelectedFile = () => {
+  selectedFile.value = null
+  uploadProgress.value = 0
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
+
+const handleFileUpload = async () => {
+  if (!selectedFile.value) {
+    showToast('请先选择视频文件')
+    return
+  }
+  
+  try {
+    uploading.value = true
+    uploadProgress.value = 0
+    
+    // 创建上传任务
+    await taskStore.createUploadTask(selectedFile.value, (progress) => {
+      uploadProgress.value = progress
+    })
+    
+    // 开始轮询状态
+    startPolling()
+    
+    showToast('文件上传成功')
+  } catch (error) {
+    console.error('文件上传失败:', error)
+    showToast('文件上传失败: ' + error.message)
+  } finally {
+    uploading.value = false
+  }
+}
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
 // 生命周期
 onMounted(() => {
   // 页面加载时清理之前的任务（只在刷新时执行）
@@ -549,6 +806,9 @@ onMounted(() => {
     console.log('页面刷新，清理之前的任务:', taskStore.currentTask.taskId)
     videoCleaner.cleanTask(taskStore.currentTask.taskId)
   }
+  
+  // 重置文件上传状态
+  resetFileUpload()
   
   // 检测设备类型
   detectDevice()
@@ -752,93 +1012,122 @@ watch(() => route.path, () => {
       @include glass-effect(0.35);
     }
     
-    .input-header {
-      text-align: center;
+    .tab-switcher {
       margin-bottom: $space-xl;
       
-      h2 {
-        font-size: $font-2xl;
-        font-weight: $font-semibold;
-        color: $text-primary;
-        margin: 0 0 $space-sm 0;
-      }
-      
-      p {
-        color: $text-secondary;
-        margin: 0;
-        font-size: $font-base;
-      }
-    }
-    
-    .input-area {
-      .url-input {
-        :deep(.van-field__control) {
-          border: 2px solid $border-light;
-          border-radius: $radius-lg;
-          padding: $space-lg;
-          font-size: $font-base;
-          transition: all 0.3s ease;
-          resize: none;
-          background: $bg-tertiary;
-          
-          &:focus {
-            border-color: $primary-color;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-            background: $bg-primary;
-          }
-          
-          &::placeholder {
-            color: $text-light;
-          }
-        }
-      }
-      
-      .input-actions {
+      .tab-buttons {
         display: flex;
         gap: $space-md;
-        margin-top: $space-lg;
         
-        .paste-btn {
-          flex: 0 0 auto;
-          min-width: 100px;
-        }
-        
-        .submit-btn {
+        .tab-button {
           flex: 1;
-          height: 56px;
-          border-radius: $radius-lg;
-          font-weight: $font-semibold;
-          font-size: $font-lg;
-          @include gradient-bg;
+          padding: $space-lg;
           border: none;
-          color: white;
+          background: transparent;
+          font-weight: $font-medium;
+          color: $text-secondary;
+          transition: all 0.3s ease;
           
-          &:disabled {
-            opacity: 0.6;
-            background: $text-light;
-            cursor: not-allowed;
+          &.active {
+            border-bottom: 2px solid $primary-color;
           }
           
-          &:not(:disabled):hover {
-            transform: translateY(-2px);
-            box-shadow: $shadow-floating;
+          &:hover {
+            color: $primary-color;
           }
         }
       }
     }
     
-    .platform-hint {
-      margin-top: $space-md;
-      text-align: center;
-      
-      .platform-tag {
-        @include glass-effect(0.2);
-        border: none;
-        color: $primary-color;
+    .tab-content {
+      .input-header {
+        text-align: center;
+        margin-bottom: $space-xl;
         
-        .van-icon {
-          margin-right: 4px;
+        h2 {
+          font-size: $font-2xl;
+          font-weight: $font-semibold;
+          color: $text-primary;
+          margin: 0 0 $space-sm 0;
+        }
+        
+        p {
+          color: $text-secondary;
+          margin: 0;
+          font-size: $font-base;
+        }
+      }
+      
+      .input-area {
+        .url-input {
+          :deep(.van-field__control) {
+            border: 2px solid $border-light;
+            border-radius: $radius-lg;
+            padding: $space-lg;
+            font-size: $font-base;
+            transition: all 0.3s ease;
+            resize: none;
+            background: $bg-tertiary;
+            
+            &:focus {
+              border-color: $primary-color;
+              outline: none;
+              box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+              background: $bg-primary;
+            }
+            
+            &::placeholder {
+              color: $text-light;
+            }
+          }
+        }
+        
+        .input-actions {
+          display: flex;
+          gap: $space-md;
+          margin-top: $space-lg;
+          
+          .paste-btn {
+            flex: 0 0 auto;
+            min-width: 100px;
+          }
+          
+          .submit-btn {
+            flex: 1;
+            height: 56px;
+            border-radius: $radius-lg;
+            font-weight: $font-semibold;
+            font-size: $font-lg;
+            @include gradient-bg;
+            border: none;
+            color: white;
+            
+            &:disabled {
+              opacity: 0.6;
+              background: $text-light;
+              cursor: not-allowed;
+            }
+            
+            &:not(:disabled):hover {
+              transform: translateY(-2px);
+              box-shadow: $shadow-floating;
+            }
+          }
+        }
+      }
+      
+      .platform-hint {
+        margin-top: $space-md;
+        text-align: center;
+        
+        .platform-tag {
+          @include glass-effect(0.2);
+          border: none;
+          color: $primary-color;
+          
+          .van-icon {
+            margin-right: 4px;
+          }
         }
       }
     }
@@ -1056,6 +1345,202 @@ watch(() => route.path, () => {
   }
   50% {
     transform: translateY(-20px);
+  }
+}
+
+// 选项卡样式
+.tab-switcher {
+  margin-bottom: $space-xl;
+  
+  .tab-buttons {
+    display: flex;
+    background: $bg-tertiary;
+    border-radius: $radius-lg;
+    padding: 4px;
+    @include glass-effect(0.1);
+    
+    .tab-button {
+      flex: 1;
+      padding: $space-lg;
+      border: none;
+      background: transparent;
+      border-radius: $radius-md;
+      color: $text-secondary;
+      font-weight: $font-medium;
+      font-size: $font-base;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: $space-sm;
+      
+      &.active {
+        background: $primary-gradient;
+        color: white;
+        box-shadow: $shadow-light;
+        transform: translateY(-1px);
+      }
+      
+      &:hover:not(.active) {
+        background: rgba(102, 126, 234, 0.1);
+        color: $primary-color;
+      }
+      
+      .van-icon {
+        font-size: 18px;
+      }
+    }
+  }
+}
+
+// 文件上传样式
+.upload-area {
+  .upload-dropzone {
+    border: 2px dashed $border-light;
+    border-radius: $radius-lg;
+    padding: $space-2xl;
+    text-align: center;
+    background: $bg-tertiary;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    
+    &:hover:not(.disabled) {
+      border-color: $primary-color;
+      background: rgba(102, 126, 234, 0.05);
+      transform: translateY(-2px);
+      box-shadow: $shadow-light;
+    }
+    
+    &.dragover {
+      border-color: $primary-color;
+      background: rgba(102, 126, 234, 0.1);
+      transform: scale(1.02);
+      box-shadow: $shadow-floating;
+    }
+    
+    &.has-file {
+      border-style: solid;
+      border-color: $primary-color;
+      background: rgba(102, 126, 234, 0.05);
+    }
+    
+    &.disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      
+      &:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    }
+    
+    .upload-prompt {
+      .upload-icon {
+        margin-bottom: $space-lg;
+        
+        .van-icon {
+          color: $primary-color;
+          opacity: 0.7;
+        }
+      }
+      
+      h3 {
+        font-size: $font-lg;
+        font-weight: $font-semibold;
+        color: $text-primary;
+        margin: 0 0 $space-md 0;
+      }
+      
+      p {
+        color: $text-secondary;
+        margin: 0 0 $space-sm 0;
+        font-size: $font-sm;
+        
+        &.size-hint {
+          color: $text-light;
+          font-size: $font-xs;
+        }
+      }
+    }
+    
+    .file-preview {
+      display: flex;
+      align-items: center;
+      gap: $space-lg;
+      text-align: left;
+      
+      .file-icon {
+        .van-icon {
+          color: $primary-color;
+        }
+      }
+      
+      .file-info {
+        flex: 1;
+        
+        h4 {
+          font-size: $font-base;
+          font-weight: $font-semibold;
+          color: $text-primary;
+          margin: 0 0 4px 0;
+          word-break: break-all;
+        }
+        
+        p {
+          font-size: $font-sm;
+          color: $text-secondary;
+          margin: 0;
+        }
+      }
+    }
+  }
+  
+  .upload-actions {
+    margin-top: $space-lg;
+    text-align: center;
+    
+    .upload-btn {
+      height: 56px;
+      min-width: 160px;
+      border-radius: $radius-lg;
+      font-weight: $font-semibold;
+      font-size: $font-lg;
+      @include gradient-bg;
+      border: none;
+      color: white;
+      
+      &:disabled {
+        opacity: 0.6;
+        background: $text-light;
+        cursor: not-allowed;
+      }
+      
+      &:not(:disabled):hover {
+        transform: translateY(-2px);
+        box-shadow: $shadow-floating;
+      }
+    }
+  }
+  
+  .upload-progress {
+    margin-top: $space-lg;
+    padding: $space-lg;
+    background: $bg-tertiary;
+    border-radius: $radius-lg;
+    @include glass-effect(0.1);
+    
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $space-md;
+      font-size: $font-sm;
+      font-weight: $font-medium;
+      color: $text-primary;
+    }
   }
 }
 </style> 
