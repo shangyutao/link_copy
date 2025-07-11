@@ -124,16 +124,50 @@
             <div class="video-thumbnail">
               <div class="thumbnail-container">
                 <!-- 如果有预览URL，显示视频播放器 -->
-                <video 
-                  v-if="proxyPreviewUrl"
-                  :src="proxyPreviewUrl"
-                  controls
-                  preload="metadata"
-                  class="video-player"
-                  @error="handleVideoError"
-                >
-                  您的浏览器不支持视频播放
-                </video>
+                <div v-if="proxyPreviewUrl">
+                  <video 
+                    ref="videoPlayer"
+                    :src="proxyPreviewUrl"
+                    controls
+                    preload="metadata"
+                    crossorigin="anonymous"
+                    playsinline
+                    class="video-player"
+                    @error="handleVideoError"
+                    @loadstart="handleVideoLoadStart"
+                    @loadedmetadata="handleVideoLoadedMetadata"
+                    @canplay="handleVideoCanPlay"
+                  >
+                    您的浏览器不支持视频播放
+                  </video>
+                  
+                  <!-- 视频加载失败时的备用方案 -->
+                  <div v-if="videoLoadFailed" class="video-fallback">
+                    <div class="fallback-content">
+                      <van-icon name="warning-o" size="48" color="#f59e0b" />
+                      <h4>视频无法播放</h4>
+                      <p>视频文件可能正在处理中或存在格式问题</p>
+                      <div class="fallback-actions">
+                        <van-button 
+                          type="primary" 
+                          size="small"
+                          @click="retryVideoLoad"
+                          :loading="retryingVideo"
+                        >
+                          重新加载
+                        </van-button>
+                        <van-button 
+                          type="default" 
+                          size="small"
+                          @click="handleDownload"
+                          :loading="downloading"
+                        >
+                          直接下载
+                        </van-button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 
                 <!-- 否则显示缩略图 -->
                 <template v-else>
@@ -359,7 +393,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTaskStore } from '@/stores/task'
 import { videoCleaner, videoApi } from '@/services/video'
@@ -386,6 +420,9 @@ const pageLoading = ref(true)
 const errorMessage = ref('')
 const transcriptionResult = ref(null)
 const optimizedText = ref('')
+const videoLoadFailed = ref(false)
+const retryingVideo = ref(false)
+const videoPlayer = ref(null)
 
 // 计算属性
 const currentTask = computed(() => taskStore.currentTask)
@@ -651,17 +688,40 @@ const proxyPreviewUrl = computed(() => {
     console.log('开发环境 - 使用原始URL:', previewUrl)
     return previewUrl
   } else {
-    // 生产环境：使用Netlify代理
+    // 生产环境：确保使用相对路径通过Netlify代理
+    let proxyUrl = previewUrl
+    
+    // 如果是完整URL，转换为代理路径
     if (previewUrl.startsWith('http://47.109.155.18:2222/')) {
-      // 如果是完整URL，转换为代理路径
-      const proxyUrl = previewUrl.replace('http://47.109.155.18:2222', '')
-      console.log('生产环境 - 转换为代理URL:', proxyUrl)
-      return proxyUrl
+      proxyUrl = previewUrl.replace('http://47.109.155.18:2222', '')
+    } else if (previewUrl.startsWith('http://') || previewUrl.startsWith('https://')) {
+      // 如果是其他域名的URL，提取路径部分
+      try {
+        const url = new URL(previewUrl)
+        proxyUrl = url.pathname
+      } catch (error) {
+        console.error('URL解析失败:', error)
+        return null
+      }
     }
-    // 如果已经是相对路径，直接使用（通过Netlify代理）
-    console.log('生产环境 - 使用代理路径:', previewUrl)
-    console.log('视频将通过Netlify代理访问:', window.location.origin + previewUrl)
-    return previewUrl
+    
+    // 确保路径以 /videos/ 开头（这样才能被Netlify代理）
+    if (!proxyUrl.startsWith('/videos/')) {
+      if (proxyUrl.startsWith('/')) {
+        // 如果以 / 开头但不是 /videos/，可能需要修正
+        if (proxyUrl.includes('/videos/')) {
+          // 提取 /videos/ 之后的部分
+          proxyUrl = proxyUrl.substring(proxyUrl.indexOf('/videos/'))
+        }
+      } else {
+        // 如果不以 / 开头，添加 /videos/ 前缀
+        proxyUrl = `/videos/${proxyUrl}`
+      }
+    }
+    
+    console.log('生产环境 - 转换为代理URL:', proxyUrl)
+    console.log('视频将通过Netlify代理访问:', window.location.origin + proxyUrl)
+    return proxyUrl
   }
 })
 
@@ -680,23 +740,121 @@ const handleImageError = (event) => {
   event.target.src = PLACEHOLDER_IMAGE
 }
 
+const handleVideoLoadStart = (event) => {
+  console.log('=== 视频开始加载 ===')
+  console.log('视频URL:', event.target.src)
+  console.log('加载时间:', new Date().toISOString())
+}
+
+const handleVideoLoadedMetadata = (event) => {
+  console.log('=== 视频元数据加载完成 ===')
+  console.log('视频时长:', event.target.duration)
+  console.log('视频尺寸:', `${event.target.videoWidth}x${event.target.videoHeight}`)
+  console.log('网络状态:', event.target.networkState)
+  console.log('就绪状态:', event.target.readyState)
+}
+
+const handleVideoCanPlay = (event) => {
+  console.log('=== 视频可以开始播放 ===')
+  console.log('缓冲状态:', event.target.buffered.length > 0 ? `${event.target.buffered.end(0)}s` : '0s')
+  console.log('✅ 视频加载成功')
+  
+  // 重置视频加载失败状态
+  videoLoadFailed.value = false
+}
+
 const handleVideoError = (event) => {
   console.error('=== 视频加载失败调试 ===')
   console.error('视频URL:', event.target.src)
   console.error('错误事件:', event)
   console.error('错误详情:', event.target.error)
+  console.error('视频networkState:', event.target.networkState)
+  console.error('视频readyState:', event.target.readyState)
+  
+  // 错误代码映射
+  const errorMessages = {
+    1: 'MEDIA_ERR_ABORTED - 用户终止了视频加载',
+    2: 'MEDIA_ERR_NETWORK - 网络错误导致视频下载失败',
+    3: 'MEDIA_ERR_DECODE - 视频解码失败',
+    4: 'MEDIA_ERR_SRC_NOT_SUPPORTED - 视频格式不支持或文件不存在'
+  }
+  
+  const errorCode = event.target.error?.code
+  const errorMessage = errorMessages[errorCode] || '未知错误'
+  console.error('错误类型:', errorMessage)
   
   // 尝试检查视频是否可访问
-  fetch(event.target.src, { method: 'HEAD' })
+  const videoUrl = event.target.src
+  console.log('尝试验证视频URL可访问性:', videoUrl)
+  
+  fetch(videoUrl, { 
+    method: 'HEAD',
+    mode: 'cors',
+    credentials: 'omit'
+  })
     .then(response => {
       console.log('视频文件HTTP状态:', response.status)
-      console.log('视频文件响应头:', response.headers)
+      console.log('视频文件Content-Type:', response.headers.get('Content-Type'))
+      console.log('视频文件Content-Length:', response.headers.get('Content-Length'))
+      console.log('视频文件响应头:', Object.fromEntries(response.headers.entries()))
+      
+      if (response.status === 200) {
+        console.log('✅ 视频文件可访问，可能是格式或编码问题')
+        showToast('视频文件可访问但无法播放，可能是格式不兼容')
+      } else {
+        console.log('❌ 视频文件HTTP状态异常')
+        showToast(`视频文件访问失败 (状态码: ${response.status})`)
+      }
     })
     .catch(error => {
       console.error('视频文件访问失败:', error)
+      
+      if (error.name === 'TypeError' && error.message.includes('CORS')) {
+        console.error('❌ CORS跨域问题')
+        showToast('视频访问被跨域策略阻止，请检查代理配置')
+      } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        console.error('❌ 网络请求失败')
+        showToast('无法访问视频文件，请检查网络连接或代理配置')
+      } else {
+        console.error('❌ 其他网络错误')
+        showToast('视频加载失败，请检查网络连接或稍后重试')
+      }
     })
   
-  showToast('视频加载失败，请检查网络连接或稍后重试')
+  // 显示更具体的错误信息
+  if (errorCode === 4) {
+    showToast('视频格式不支持或文件不存在')
+  } else if (errorCode === 2) {
+    showToast('网络错误，无法下载视频')
+  } else {
+    showToast(`视频加载失败: ${errorMessage}`)
+  }
+  
+  // 设置视频加载失败状态，显示回退界面
+  videoLoadFailed.value = true
+}
+
+const retryVideoLoad = async () => {
+  if (!videoPlayer.value || !taskId.value) return
+  
+  retryingVideo.value = true
+  videoLoadFailed.value = false
+  
+  try {
+    // 重新加载预览信息
+    await loadPreviewInfo()
+    
+    // 重置视频元素
+    videoPlayer.value.load()
+    
+    showToast('正在重新加载视频...')
+  } catch (error) {
+    console.error('重新加载视频失败:', error)
+    showToast('重新加载失败，请稍后重试')
+    videoLoadFailed.value = true
+  } finally {
+    retryingVideo.value = false
+  }
 }
 
 const getPlatformName = (platform) => {
@@ -720,6 +878,15 @@ const getPlatformColor = (platform) => {
   }
   return colorMap[platform] || '#667eea'
 }
+
+// 监听器
+watch(proxyPreviewUrl, (newUrl) => {
+  if (newUrl) {
+    // 当预览URL变化时，重置视频失败状态
+    videoLoadFailed.value = false
+    console.log('预览URL已更新:', newUrl)
+  }
+})
 
 // 生命周期
 onMounted(async () => {
@@ -1030,6 +1197,62 @@ onBeforeUnmount(() => {
           
           &:focus {
             outline: none;
+          }
+        }
+        
+        .video-fallback {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: $radius-lg;
+          
+          .fallback-content {
+            text-align: center;
+            color: white;
+            
+            h4 {
+              margin: $space-md 0 $space-sm 0;
+              font-size: $font-lg;
+              font-weight: $font-semibold;
+            }
+            
+            p {
+              margin: 0 0 $space-lg 0;
+              font-size: $font-sm;
+              color: rgba(255, 255, 255, 0.8);
+              line-height: 1.4;
+            }
+            
+            .fallback-actions {
+              display: flex;
+              gap: $space-sm;
+              justify-content: center;
+              
+              .van-button {
+                min-width: 80px;
+                
+                &.van-button--primary {
+                  background: $primary-color;
+                  border-color: $primary-color;
+                }
+                
+                &.van-button--default {
+                  background: rgba(255, 255, 255, 0.1);
+                  border-color: rgba(255, 255, 255, 0.2);
+                  color: white;
+                  
+                  &:hover {
+                    background: rgba(255, 255, 255, 0.2);
+                  }
+                }
+              }
+            }
           }
         }
         
