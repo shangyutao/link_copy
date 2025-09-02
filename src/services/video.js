@@ -335,10 +335,32 @@ export const videoApi = {
    * @returns {Promise<Object>} 转文案结果
    */
   async getTranscriptionResult(taskId) {
-    const response = await api.get(`/video/transcription/${taskId}`, {
+    const response = await api.get(`/video/transcribe/result/${taskId}`, {
       showLoading: false // 轮询时不显示loading
     })
     return response.data
+  },
+
+  /**
+   * 轮询获取转文案最终结果
+   * @param {string} taskId - 任务ID
+   * @param {Object} options - 配置项
+   * @returns {Promise<Object>} 转文案结果
+   */
+  async pollTranscriptionResult(taskId, { interval = 3000, maxAttempts = 100 } = {}) {
+    let attempts = 0
+    while (attempts < maxAttempts) {
+      const res = await this.getTranscriptionResult(taskId)
+      if (res.status === 'completed') {
+        return res
+      }
+      if (res.status === 'failed') {
+        throw new Error(res.errorMessage || '转文案失败')
+      }
+      await new Promise(resolve => setTimeout(resolve, interval))
+      attempts++
+    }
+    throw new Error('转文案超时，请稍后重试')
   }
 }
 

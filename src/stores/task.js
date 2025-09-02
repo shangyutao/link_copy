@@ -295,24 +295,25 @@ export const useTaskStore = defineStore('task', () => {
         progress: 0,
         createTime: new Date().toISOString()
       }
-      
-      const response = await videoApi.transcribeVideo(taskId)
-      
+
+      // 1. 提交转文案任务（后端应立即返回处理中）
+      await videoApi.transcribeVideo(taskId)
+      // 2. 轮询获取最终结果
+      const result = await videoApi.pollTranscriptionResult(taskId)
+
       // 更新转文案数据
       transcriptionData.value = {
         ...transcriptionData.value,
-        ...response,
+        ...result,
         status: 'completed'
       }
-      
-      return response
+      return result
     } catch (error) {
       // 设置失败状态
       if (transcriptionData.value) {
         transcriptionData.value.status = 'failed'
         transcriptionData.value.errorMessage = error.message
       }
-      
       console.error('转换视频为文案失败:', error)
       throw error
     }
