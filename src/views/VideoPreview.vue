@@ -103,6 +103,33 @@
           </div>
         </div>
 
+        <!-- AI处理提示信息 - 移到顶部 -->
+        <div v-if="isCompleted" class="ai-notice-section animate-fade-in-up">
+          <div class="ai-notice-card">
+            <div class="notice-header">
+              <van-icon name="bulb-o" class="notice-icon" />
+              <span class="notice-title">AI 处理提示</span>
+            </div>
+            <div class="notice-content">
+              <p>视频解析已完成，但 AI 转文案和优化需要较长时间处理，请耐心等待结果返回。</p>
+              <div class="notice-tips">
+                <div class="tip-item">
+                  <van-icon name="clock-o" />
+                  <span>转文案：通常需要 1-3 分钟</span>
+                </div>
+                <div class="tip-item">
+                  <van-icon name="fire" />
+                  <span>AI优化：通常需要 2-5 分钟</span>
+                </div>
+                <div class="tip-item">
+                  <van-icon name="info-o" />
+                  <span>期间请勿重复点击按钮，避免重复请求</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 视频预览区域 -->
         <div v-if="currentTask" class="video-section animate-fade-in-up">
           <div class="video-card card-floating">
@@ -514,6 +541,15 @@ const proxyPreviewUrl = computed(() => {
     // 清理路径中的重复部分和特殊字符
     proxyUrl = proxyUrl.replace(/\/videos\/videos\//, '/videos/')
     proxyUrl = proxyUrl.replace(/\/+/g, '/') // 替换多个连续的斜杠为单个
+    
+    // 处理特殊字符编码问题
+    try {
+      // 解码URL，然后重新编码，确保特殊字符正确处理
+      const decodedUrl = decodeURIComponent(proxyUrl)
+      proxyUrl = encodeURI(decodedUrl)
+    } catch (error) {
+      console.warn('URL编码处理失败，使用原始路径:', error)
+    }
     
     console.log('生产环境 - 转换为代理URL:', proxyUrl)
     console.log('视频将通过Netlify代理访问:', window.location.origin + proxyUrl)
@@ -1540,26 +1576,95 @@ $success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
           }
         }
         
-        .ai-processing-hint {
-          display: flex;
-          align-items: center;
-          gap: $space-xs;
-          background: rgba(79, 172, 254, 0.1);
-          padding: $space-sm $space-md;
-          border-radius: $radius-lg;
-          border: 1px solid rgba(79, 172, 254, 0.2);
-          color: rgba(79, 172, 254, 0.9);
-          font-size: $font-sm;
-          opacity: 0.9;
-          margin-bottom: $space-md;
+        .ai-notice-section {
+          margin-bottom: $space-xl;
           
-          .hint-icon {
-            color: #4facfe;
-            flex-shrink: 0;
-          }
-          
-          .hint-text {
-            line-height: 1.4;
+          .ai-notice-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: $radius-xl;
+            padding: $space-xl;
+            box-shadow: 
+              0 20px 25px -5px rgba(0, 0, 0, 0.1),
+              0 10px 10px -5px rgba(0, 0, 0, 0.04),
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            position: relative;
+            overflow: hidden;
+            
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 3px;
+              background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #4facfe 100%);
+              border-radius: $radius-xl $radius-xl 0 0;
+            }
+            
+            .notice-header {
+              display: flex;
+              align-items: center;
+              gap: $space-sm;
+              margin-bottom: $space-md;
+              
+              .notice-icon {
+                font-size: 24px;
+                color: #667eea;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+              }
+              
+              .notice-title {
+                font-size: $font-lg;
+                font-weight: $font-bold;
+                color: $text-primary;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+              }
+            }
+            
+            .notice-content {
+              p {
+                color: $text-secondary;
+                font-size: $font-base;
+                line-height: 1.6;
+                margin: 0 0 $space-md 0;
+              }
+              
+              .notice-tips {
+                display: flex;
+                flex-direction: column;
+                gap: $space-sm;
+                
+                .tip-item {
+                  display: flex;
+                  align-items: center;
+                  gap: $space-sm;
+                  padding: $space-sm $space-md;
+                  background: rgba(102, 126, 234, 0.08);
+                  border-radius: $radius-md;
+                  border-left: 3px solid #667eea;
+                  
+                  .van-icon {
+                    color: #667eea;
+                    font-size: 16px;
+                    flex-shrink: 0;
+                  }
+                  
+                  span {
+                    color: $text-secondary;
+                    font-size: $font-sm;
+                    line-height: 1.4;
+                  }
+                }
+              }
+            }
           }
         }
     
