@@ -509,8 +509,15 @@ const handleTranscribe = async () => {
   transcribing.value = true
   try {
     const result = await taskStore.transcribeVideo(currentTask.value.taskId)
-    transcriptionResult.value = result
-    showToast('文案提取完成')
+    const tr = result?.transcription || null
+    transcriptionResult.value = tr
+    if (tr && tr.status === 'completed' && tr.text) {
+      showToast('文案提取完成')
+    } else if (tr && tr.status === 'processing') {
+      showToast('文案生成中，请稍候…')
+    } else {
+      showToast('暂未获取到文案，稍后重试')
+    }
   } catch (error) {
     console.error('转文案失败:', error)
     showToast('转文案失败，请重试')

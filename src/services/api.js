@@ -32,6 +32,14 @@ api.interceptors.request.use(
       })
     }
     
+    // 若为文件上传(FormData)，移除默认的 JSON Content-Type，交给浏览器自动设置带 boundary 的 multipart/form-data
+    try {
+      if (config.data instanceof FormData && config.headers) {
+        delete config.headers['Content-Type']
+        delete config.headers['content-type']
+      }
+    } catch {}
+    
     console.log('API请求:', config.method?.toUpperCase(), config.url, config.data)
     return config
   },
