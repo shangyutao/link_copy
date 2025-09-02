@@ -98,132 +98,112 @@
                   </template>
                   取消任务
                 </van-button>
-                
-                <van-button 
-                  v-if="isFailed"
-                  size="small" 
-                  type="primary" 
-                  class="btn-glass"
-                  @click="handleRetry"
-                  :loading="retrying"
-                >
-                  <template #icon>
-                    <van-icon name="replay" />
-                  </template>
-                  重新尝试
-                </van-button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 视频信息卡片 -->
-        <div v-if="videoInfo" class="video-info-section animate-fade-in-up">
+        <!-- 视频预览区域 -->
+        <div v-if="currentTask" class="video-section animate-fade-in-up">
           <div class="video-card card-floating">
-            <!-- 视频封面 -->
-            <div class="video-thumbnail">
-              <div class="thumbnail-container">
-                <!-- 如果有预览URL，显示视频播放器 -->
-                <div v-if="proxyPreviewUrl">
-                  <video 
-                    ref="videoPlayer"
-                    :src="proxyPreviewUrl"
-                    controls
-                    preload="metadata"
-                    crossorigin="anonymous"
-                    playsinline
-                    class="video-player"
-                    @error="handleVideoError"
-                    @loadstart="handleVideoLoadStart"
-                    @loadedmetadata="handleVideoLoadedMetadata"
-                    @canplay="handleVideoCanPlay"
-                  >
-                    您的浏览器不支持视频播放
-                  </video>
-                  
-                  <!-- 视频加载失败时的备用方案 -->
-                  <div v-if="videoLoadFailed" class="video-fallback">
-                    <div class="fallback-content">
-                      <van-icon name="warning-o" size="48" color="#f59e0b" />
-                      <h4>视频无法播放</h4>
-                      <p>视频文件可能正在处理中或存在格式问题</p>
-                      <div class="fallback-actions">
-                        <van-button 
-                          type="primary" 
-                          size="small"
-                          @click="retryVideoLoad"
-                          :loading="retryingVideo"
-                        >
-                          重新加载
-                        </van-button>
-                        <van-button 
-                          type="default" 
-                          size="small"
-                          @click="handleDownload"
-                          :loading="downloading"
-                        >
-                          直接下载
-                        </van-button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- 否则显示缩略图 -->
-                <template v-else>
-                  <img 
-                    :src="getPreviewImage()" 
-                    :alt="videoInfo?.title || '视频预览'"
-                    @error="handleImageError"
-                    class="thumbnail-image"
-                  />
-                  <div class="play-overlay">
-                    <div class="play-button glow-effect">
-                      <van-icon name="play-circle" size="64px" />
-                    </div>
-                  </div>
-                </template>
-                <div v-if="videoInfo.duration" class="duration-badge">
-                  {{ formatTime(videoInfo.duration) }}
-                </div>
-                <div class="platform-badge">
-                  <span :style="{ color: getPlatformColor(platform) }">
-                    {{ getPlatformName(platform) }}
-                  </span>
-                </div>
-              </div>
+            <div class="video-header">
+              <h3 class="video-title">{{ currentTask.fileName || '视频预览' }}</h3>
+              <van-button 
+                size="small" 
+                class="refresh-btn btn-glass"
+                @click="refreshStatus"
+                :loading="refreshing"
+              >
+                <van-icon name="replay" />
+                刷新
+              </van-button>
             </div>
             
-            <!-- 视频信息 -->
-            <div class="video-details">
-              <h2 class="video-title">{{ videoInfo.title || '解析中...' }}</h2>
-              <div class="video-meta">
-                <div class="meta-row">
-                  <div class="meta-item">
-                    <van-icon name="user-o" />
-                    <span>{{ videoInfo.author || '未知作者' }}</span>
-                  </div>
-                  <div v-if="videoInfo.viewCount" class="meta-item">
-                    <van-icon name="eye-o" />
-                    <span>{{ formatNumber(videoInfo.viewCount) }} 次播放</span>
-                  </div>
-                </div>
-                <div class="meta-row">
-                  <div v-if="videoInfo.likeCount" class="meta-item">
-                    <van-icon name="like-o" />
-                    <span>{{ formatNumber(videoInfo.likeCount) }} 点赞</span>
-                  </div>
-                  <div v-if="videoInfo.duration" class="meta-item">
-                    <van-icon name="clock-o" />
-                    <span>{{ formatTime(videoInfo.duration) }}</span>
+            <div class="video-container">
+              <!-- 视频播放器 -->
+              <div v-if="proxyPreviewUrl">
+                <video 
+                  ref="videoPlayer"
+                  :src="proxyPreviewUrl"
+                  controls
+                  preload="metadata"
+                  crossorigin="anonymous"
+                  playsinline
+                  class="video-player"
+                  @loadstart="handleVideoLoadStart"
+                  @loadedmetadata="handleVideoLoadedMetadata"
+                  @canplay="handleVideoCanPlay"
+                  @error="handleVideoError"
+                >
+                  您的浏览器不支持视频播放
+                </video>
+              </div>
+              
+              <!-- 视频加载失败回退界面 -->
+              <div v-else-if="videoLoadFailed" class="video-fallback">
+                <div class="fallback-content">
+                  <van-icon name="warning-o" size="48px" color="rgba(255,255,255,0.6)" />
+                  <h4>视频加载失败</h4>
+                  <p>无法加载视频文件，可能是网络问题或文件格式不兼容</p>
+                  <div class="fallback-actions">
+                    <van-button 
+                      type="primary" 
+                      size="small"
+                      @click="retryVideoLoad"
+                      :loading="retryingVideo"
+                    >
+                      重新加载
+                    </van-button>
+                    <van-button 
+                      type="default" 
+                      size="small"
+                      @click="goBack"
+                    >
+                      返回
+                    </van-button>
                   </div>
                 </div>
               </div>
               
-              <!-- 视频描述 -->
-              <div v-if="videoInfo.description" class="video-description">
-                <h4>视频描述</h4>
-                <p>{{ videoInfo.description }}</p>
+              <!-- 视频缩略图 -->
+              <div v-else class="video-thumbnail">
+                <img 
+                  :src="getPreviewImage()" 
+                  :alt="currentTask.fileName"
+                  class="thumbnail-image"
+                  @error="handleImageError"
+                />
+                <div class="play-overlay" @click="retryVideoLoad">
+                  <van-icon name="play-circle-o" size="64px" class="play-button" />
+                </div>
+              </div>
+            </div>
+            
+            <div class="video-info">
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">文件大小</div>
+                  <div class="info-value">{{ formatFileSize(currentTask.fileSize) }}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">平台</div>
+                  <div class="info-value">{{ getPlatformName(currentTask.platform) }}</div>
+                </div>
+                                 <div class="info-item">
+                   <div class="info-label">任务ID</div>
+                   <div class="info-value task-id" @click="copyTaskId(currentTask.taskId)" title="点击复制完整任务ID">
+                     <span class="task-id-text">{{ formatTaskId(currentTask.taskId) }}</span>
+                     <van-icon 
+                       name="copy" 
+                       size="14" 
+                       class="copy-icon"
+                     />
+                   </div>
+                 </div>
+                <div class="info-item">
+                  <div class="info-label">创建时间</div>
+                  <div class="info-value">{{ formatDate(currentTask.createTime) }}</div>
+                </div>
               </div>
               
               <!-- 标签 -->
@@ -244,10 +224,16 @@
         <!-- 操作按钮区域 -->
         <div class="action-section animate-fade-in-up">
           <div v-if="isCompleted" class="action-buttons">
+            <!-- 优雅提示信息 -->
+            <div class="elegant-hint">
+              <van-icon name="info-o" class="hint-icon" />
+              <span class="hint-text">AI 处理需要时间，请耐心等待结果返回，期间请勿重复点击按钮</span>
+            </div>
+            
             <van-button
               type="primary"
               size="large"
-              class="action-btn download-btn btn-primary"
+              class="action-btn download-btn btn-gradient-primary"
               @click="handleDownload"
               :loading="downloading"
             >
@@ -260,7 +246,7 @@
             <van-button
               type="success"
               size="large"
-              class="action-btn transcribe-btn btn-accent"
+              class="action-btn transcribe-btn btn-gradient-success"
               @click="handleTranscribe"
               :loading="transcribing"
             >
@@ -324,7 +310,7 @@
                   <p>{{ transcriptionResult.text }}</p>
                   <div class="text-meta">
                     <span>时长: {{ formatTime(transcriptionResult.duration) }}</span>
-                    <span>{{ transcriptionResult.createTime | formatDate }}</span>
+                    <span>{{ formatDate(transcriptionResult.createTime) }}</span>
                   </div>
                 </div>
               </div>
@@ -337,7 +323,7 @@
                 <div class="text-content">
                   <p>{{ optimizedText }}</p>
                   <div class="text-meta">
-                    <span>由AI智能优化</span>
+                    <span>优化时间: {{ formatDate(new Date()) }}</span>
                   </div>
                 </div>
               </div>
@@ -460,6 +446,66 @@ const statusDescription = computed(() => {
   if (isCompleted.value) return '视频已准备就绪，您可以下载或转换文案'
   if (isFailed.value) return currentTask.value?.errorMessage || '处理过程中出现错误，请重试'
   return '任务已创建，即将开始处理'
+})
+
+// 转换预览URL为代理URL（计算属性）
+const proxyPreviewUrl = computed(() => {
+  const previewUrl = currentTask.value?.previewUrl
+  if (!previewUrl) return null
+  
+  console.log('=== 视频URL处理调试 ===')
+  console.log('原始预览URL:', previewUrl)
+  console.log('当前环境:', import.meta.env.DEV ? '开发环境' : '生产环境')
+  
+  // 环境判断
+  const isDevelopment = import.meta.env.DEV
+  
+  if (isDevelopment) {
+    // 开发环境：如果是相对路径，转换为完整URL
+    if (previewUrl.startsWith('/videos/')) {
+      const fullUrl = `http://47.109.155.18:2222${previewUrl}`
+      console.log('开发环境 - 转换为完整URL:', fullUrl)
+      return fullUrl
+    }
+    // 如果已经是完整URL，直接使用
+    console.log('开发环境 - 使用原始URL:', previewUrl)
+    return previewUrl
+  } else {
+    // 生产环境：确保使用相对路径通过Netlify代理
+    let proxyUrl = previewUrl
+    
+    // 如果是完整URL，转换为代理路径
+    if (previewUrl.startsWith('http://47.109.155.18:2222/')) {
+      proxyUrl = previewUrl.replace('http://47.109.155.18:2222', '')
+    } else if (previewUrl.startsWith('http://') || previewUrl.startsWith('https://')) {
+      // 如果是其他域名的URL，提取路径部分
+      try {
+        const url = new URL(previewUrl)
+        proxyUrl = url.pathname
+      } catch (error) {
+        console.error('URL解析失败:', error)
+        return null
+      }
+    }
+    
+    // 确保路径以 /videos/ 开头（这样才能被Netlify代理）
+    if (!proxyUrl.startsWith('/videos/')) {
+      if (proxyUrl.startsWith('/')) {
+        // 如果以 / 开头但不是 /videos/，可能需要修正
+        if (proxyUrl.includes('/videos/')) {
+          // 提取 /videos/ 之后的部分
+          proxyUrl = proxyUrl.substring(proxyUrl.indexOf('/videos/'))
+        }
+      } else {
+        // 如果不以 / 开头，添加 /videos/ 前缀
+        proxyUrl = `/videos/${proxyUrl}`
+      }
+    }
+    
+    console.log('生产环境 - 转换为代理URL:', proxyUrl)
+    console.log('视频将通过Netlify代理访问:', window.location.origin + proxyUrl)
+    return proxyUrl
+  }
 })
 
 // 方法
@@ -672,66 +718,6 @@ const getPreviewImage = () => {
   return previewUrl || thumbnail || PLACEHOLDER_IMAGE
 }
 
-// 转换预览URL为代理URL（计算属性）
-const proxyPreviewUrl = computed(() => {
-  const previewUrl = currentTask.value?.previewUrl
-  if (!previewUrl) return null
-  
-  console.log('=== 视频URL处理调试 ===')
-  console.log('原始预览URL:', previewUrl)
-  console.log('当前环境:', import.meta.env.DEV ? '开发环境' : '生产环境')
-  
-  // 环境判断
-  const isDevelopment = import.meta.env.DEV
-  
-  if (isDevelopment) {
-    // 开发环境：如果是相对路径，转换为完整URL
-    if (previewUrl.startsWith('/videos/')) {
-      const fullUrl = `http://47.109.155.18:2222${previewUrl}`
-      console.log('开发环境 - 转换为完整URL:', fullUrl)
-      return fullUrl
-    }
-    // 如果已经是完整URL，直接使用
-    console.log('开发环境 - 使用原始URL:', previewUrl)
-    return previewUrl
-  } else {
-    // 生产环境：确保使用相对路径通过Netlify代理
-    let proxyUrl = previewUrl
-    
-    // 如果是完整URL，转换为代理路径
-    if (previewUrl.startsWith('http://47.109.155.18:2222/')) {
-      proxyUrl = previewUrl.replace('http://47.109.155.18:2222', '')
-    } else if (previewUrl.startsWith('http://') || previewUrl.startsWith('https://')) {
-      // 如果是其他域名的URL，提取路径部分
-      try {
-        const url = new URL(previewUrl)
-        proxyUrl = url.pathname
-      } catch (error) {
-        console.error('URL解析失败:', error)
-        return null
-      }
-    }
-    
-    // 确保路径以 /videos/ 开头（这样才能被Netlify代理）
-    if (!proxyUrl.startsWith('/videos/')) {
-      if (proxyUrl.startsWith('/')) {
-        // 如果以 / 开头但不是 /videos/，可能需要修正
-        if (proxyUrl.includes('/videos/')) {
-          // 提取 /videos/ 之后的部分
-          proxyUrl = proxyUrl.substring(proxyUrl.indexOf('/videos/'))
-        }
-      } else {
-        // 如果不以 / 开头，添加 /videos/ 前缀
-        proxyUrl = `/videos/${proxyUrl}`
-      }
-    }
-    
-    console.log('生产环境 - 转换为代理URL:', proxyUrl)
-    console.log('视频将通过Netlify代理访问:', window.location.origin + proxyUrl)
-    return proxyUrl
-  }
-})
-
 const handleImageError = (event) => {
   // 防止无限循环：如果已经是占位符图片，就不再重新设置
   if (event.target.src.includes('placeholder-video.jpg') || 
@@ -886,6 +872,66 @@ const getPlatformColor = (platform) => {
   return colorMap[platform] || '#667eea'
 }
 
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffTime = Math.abs(now - date)
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 1) {
+      return '今天 ' + date.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    } else if (diffDays === 2) {
+      return '昨天 ' + date.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    } else if (diffDays <= 7) {
+      const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+      return weekdays[date.getDay()] + ' ' + date.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    } else {
+      return date.toLocaleDateString('zh-CN', { 
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    }
+  } catch (error) {
+    return dateString
+  }
+}
+
+const formatTaskId = (id) => {
+  if (!id) return 'N/A'
+  const truncatedId = id.substring(0, 8) + '...' + id.substring(id.length - 4)
+  return truncatedId
+}
+
+const copyTaskId = async (id) => {
+  try {
+    await copyToClipboard(id)
+    showToast('任务ID已复制')
+  } catch (error) {
+    showToast('复制失败')
+  }
+}
+
 // 监听器
 watch(proxyPreviewUrl, (newUrl) => {
   if (newUrl) {
@@ -952,6 +998,35 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/variables.scss';
+
+// 渐变背景混入
+@mixin gradient-bg($gradient) {
+  background: $gradient;
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// 渐变动画
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+// 渐变定义
+$primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+
 .video-preview-page {
   min-height: 100vh;
   background: $bg-gradient;
@@ -1178,89 +1253,134 @@ onBeforeUnmount(() => {
   }
 }
 
-.video-info-section {
+.video-section {
   .video-card {
     overflow: hidden;
     
-    .video-thumbnail {
-      .thumbnail-container {
-        position: relative;
-        aspect-ratio: 16/9;
-        border-radius: $radius-xl;
-        overflow: hidden;
-        background: $bg-dark;
+    .video-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $space-lg;
+      
+      .video-title {
+        font-size: $font-xl;
+        font-weight: $font-bold;
+        color: $text-primary;
+        margin: 0;
+      }
+      
+      .refresh-btn {
+        padding: $space-xs $space-sm;
+        border-radius: $radius-md;
+        background: rgba(255, 255, 255, 0.1);
+        color: $text-secondary;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+          color: $primary-color;
+        }
+      }
+    }
+    
+    .video-container {
+      position: relative;
+      aspect-ratio: 16/9;
+      border-radius: $radius-xl;
+      overflow: hidden;
+      background: $bg-dark;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      .video-player {
+        width: 100%;
+        height: 100%;
+        border-radius: $radius-lg;
+        background: #000;
+        
+        &:focus {
+          outline: none;
+        }
+      }
+      
+      .video-fallback {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: $radius-lg;
+        
+        .fallback-content {
+          text-align: center;
+          color: white;
+          
+          h4 {
+            margin: $space-md 0 $space-sm 0;
+            font-size: $font-lg;
+            font-weight: $font-semibold;
+          }
+          
+          p {
+            margin: 0 0 $space-lg 0;
+            font-size: $font-sm;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.4;
+          }
+          
+          .fallback-actions {
+            display: flex;
+            gap: $space-sm;
+            justify-content: center;
+            
+            .van-button {
+              min-width: 80px;
+              
+              &.van-button--primary {
+                background: $primary-color;
+                border-color: $primary-color;
+              }
+              
+              &.van-button--default {
+                background: rgba(255, 255, 255, 0.1);
+                border-color: rgba(255, 255, 255, 0.2);
+                color: white;
+                
+                &:hover {
+                  background: rgba(255, 255, 255, 0.2);
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      .video-thumbnail {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.8;
+        cursor: pointer;
+        
+        &:hover {
+          opacity: 1;
+        }
         
         .thumbnail-image {
           width: 100%;
           height: 100%;
           object-fit: cover;
-        }
-        
-        .video-player {
-          width: 100%;
-          height: 100%;
-          border-radius: $radius-lg;
-          background: #000;
-          
-          &:focus {
-            outline: none;
-          }
-        }
-        
-        .video-fallback {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: $radius-lg;
-          
-          .fallback-content {
-            text-align: center;
-            color: white;
-            
-            h4 {
-              margin: $space-md 0 $space-sm 0;
-              font-size: $font-lg;
-              font-weight: $font-semibold;
-            }
-            
-            p {
-              margin: 0 0 $space-lg 0;
-              font-size: $font-sm;
-              color: rgba(255, 255, 255, 0.8);
-              line-height: 1.4;
-            }
-            
-            .fallback-actions {
-              display: flex;
-              gap: $space-sm;
-              justify-content: center;
-              
-              .van-button {
-                min-width: 80px;
-                
-                &.van-button--primary {
-                  background: $primary-color;
-                  border-color: $primary-color;
-                }
-                
-                &.van-button--default {
-                  background: rgba(255, 255, 255, 0.1);
-                  border-color: rgba(255, 255, 255, 0.2);
-                  color: white;
-                  
-                  &:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                  }
-                }
-              }
-            }
-          }
         }
         
         .play-overlay {
@@ -1275,7 +1395,6 @@ onBeforeUnmount(() => {
           justify-content: center;
           opacity: 0;
           transition: opacity 0.3s ease;
-          cursor: pointer;
           
           &:hover {
             opacity: 1;
@@ -1291,82 +1410,77 @@ onBeforeUnmount(() => {
             }
           }
         }
-        
-        .duration-badge {
-          position: absolute;
-          bottom: $space-md;
-          right: $space-md;
-          background: rgba(0, 0, 0, 0.8);
-          color: white;
-          padding: $space-xs $space-sm;
-          border-radius: $radius-md;
-          font-size: $font-sm;
-          font-weight: $font-medium;
-        }
-        
-        .platform-badge {
-          position: absolute;
-          top: $space-md;
-          left: $space-md;
-          background: rgba(255, 255, 255, 0.9);
-          padding: $space-xs $space-sm;
-          border-radius: $radius-md;
-          font-size: $font-xs;
-          font-weight: $font-semibold;
-          text-transform: uppercase;
-        }
       }
     }
     
-    .video-details {
+    .video-info {
       padding: $space-xl;
+      background: $bg-secondary;
+      border-radius: $radius-lg;
+      margin-top: $space-lg;
+      box-shadow: $shadow-light;
       
-      .video-title {
-        font-size: $font-xl;
-        font-weight: $font-bold;
-        color: $text-primary;
-        margin: 0 0 $space-lg 0;
-        line-height: 1.4;
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: $space-md;
+        margin-bottom: $space-lg;
       }
       
-      .video-meta {
-        margin-bottom: $space-lg;
+      .info-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
         
-        .meta-row {
-          display: flex;
-          gap: $space-lg;
-          margin-bottom: $space-sm;
-          flex-wrap: wrap;
-          
-          .meta-item {
-            display: flex;
-            align-items: center;
-            gap: $space-xs;
-            color: $text-secondary;
-            font-size: $font-sm;
-            
-            .van-icon {
-              color: $primary-color;
-            }
-          }
-        }
-      }
-      
-      .video-description {
-        margin-bottom: $space-lg;
-        
-        h4 {
-          font-size: $font-base;
-          font-weight: $font-semibold;
-          color: $text-primary;
-          margin: 0 0 $space-sm 0;
+        .info-label {
+          font-size: $font-sm;
+          color: $text-light;
+          margin-bottom: $space-xs;
         }
         
-        p {
-          color: $text-secondary;
-          line-height: 1.6;
-          margin: 0;
-        }
+                 .info-value {
+           font-size: $font-base;
+           font-weight: $font-semibold;
+           color: $text-primary;
+           
+           &.task-id {
+             cursor: pointer;
+             display: flex;
+             align-items: center;
+             gap: $space-xs;
+             padding: $space-xs $space-sm;
+             border-radius: $radius-md;
+             background: rgba(102, 126, 234, 0.1);
+             border: 1px solid rgba(102, 126, 234, 0.2);
+             color: $primary-color;
+             transition: all 0.3s ease;
+             
+             &:hover {
+               background: rgba(102, 126, 234, 0.2);
+               border-color: rgba(102, 126, 234, 0.3);
+               transform: translateY(-1px);
+             }
+             
+             .task-id-text {
+               overflow: hidden;
+               text-overflow: ellipsis;
+               white-space: nowrap;
+               max-width: 120px;
+             }
+             
+             .copy-icon {
+               color: $primary-color;
+               opacity: 0.8;
+               transition: opacity 0.3s ease;
+               flex-shrink: 0;
+               
+               &:hover {
+                 opacity: 1;
+               }
+             }
+           }
+         }
       }
       
       .video-tags {
@@ -1387,25 +1501,68 @@ onBeforeUnmount(() => {
 .action-section {
   .action-buttons {
     display: flex;
+    flex-direction: column;
     gap: $space-md;
     
+    .elegant-hint {
+      display: flex;
+      align-items: center;
+      gap: $space-xs;
+      background: rgba(255, 255, 255, 0.1);
+      padding: $space-sm $space-md;
+      border-radius: $radius-lg;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.8);
+      font-size: $font-sm;
+      opacity: 0.9;
+      margin-bottom: $space-sm;
+      
+      .hint-icon {
+        color: #667eea;
+        flex-shrink: 0;
+      }
+      
+      .hint-text {
+        line-height: 1.4;
+      }
+    }
+    
     .action-btn {
-      flex: 1;
       height: 56px;
       border-radius: $radius-xl;
       font-weight: $font-semibold;
       font-size: $font-base;
       
-      &.btn-primary {
-        @include gradient-bg;
+      &.btn-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        &:active {
+          transform: translateY(0);
+        }
       }
       
-      &.btn-accent {
-        @include gradient-bg($accent-gradient);
+      &.btn-gradient-success {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         color: white;
         border: none;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+        }
+        
+        &:active {
+          transform: translateY(0);
+        }
       }
       
       &:hover {

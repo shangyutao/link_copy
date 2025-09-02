@@ -62,6 +62,11 @@
               <div class="input-header">
                 <h2>粘贴视频链接</h2>
                 <p>支持抖音、哔哩哔哩等主流视频平台</p>
+                <!-- 优雅提示信息 -->
+                <div class="elegant-hint">
+                  <van-icon name="info-o" class="hint-icon" />
+                  <span class="hint-text">AI 解析和转文案需要时间，请耐心等待结果返回，期间请勿重复操作</span>
+                </div>
               </div>
               
               <div class="input-area">
@@ -118,6 +123,11 @@
               <div class="input-header">
                 <h2>上传视频文件</h2>
                 <p>支持 MP4、AVI、MOV 等格式，文件大小不超过 500MB</p>
+                <!-- 优雅提示信息 -->
+                <div class="elegant-hint">
+                  <van-icon name="info-o" class="hint-icon" />
+                  <span class="hint-text">AI 转文案和优化需要时间，请耐心等待结果返回，期间请勿重复操作</span>
+                </div>
               </div>
               
               <div class="upload-area">
@@ -1055,6 +1065,34 @@ watch(() => route.path, () => {
           color: $text-secondary;
           margin: 0;
           font-size: $font-base;
+        }
+        
+        .elegant-hint {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: $space-xs;
+          background: rgba(102, 126, 234, 0.1);
+          padding: $space-sm $space-md;
+          border-radius: $radius-lg;
+          border: 1px solid rgba(102, 126, 234, 0.2);
+          color: $text-secondary;
+          font-size: $font-sm;
+          opacity: 0.9;
+          margin-top: $space-md;
+          max-width: 500px;
+          margin-left: auto;
+          margin-right: auto;
+          
+          .hint-icon {
+            color: $primary-color;
+            flex-shrink: 0;
+          }
+          
+          .hint-text {
+            line-height: 1.4;
+            text-align: left;
+          }
         }
       }
       
