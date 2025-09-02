@@ -1,4 +1,5 @@
 import api from './api'
+import { maybeCompressForNetlify } from './video-compress'
 
 /**
  * 视频相关API服务
@@ -53,9 +54,66 @@ export const videoApi = {
       throw new Error('不支持的视频格式，请上传 MP4、AVI、MOV、WMV、FLV、WEBM、MKV、M4V、3GP、OGV 格式的视频文件')
     }
 
+    // 若文件过大，在生产环境尝试压缩为仅音频 MP4，降低体积
+    let uploadFile = file
+    let usedCompressed = false
+    // 默认启用压缩（本地与生产一致），如需禁用可设置 VITE_ENABLE_UPLOAD_COMPRESSION=false
+    const enableCompression = (import.meta.env.VITE_ENABLE_UPLOAD_COMPRESSION !== 'false')
+    const thresholdMb = Number(import.meta.env.VITE_UPLOAD_COMPRESSION_THRESHOLD_MB || 20)
+    const thresholdBytes = Math.max(1, thresholdMb) * 1024 * 1024
+
+    // 先上传原视频，后台进行压缩（避免阻塞用户操作）
+    if (enableCompression && file.size > thresholdBytes) {
+      console.log('🔧 触发压缩逻辑:', {
+        fileSize: file.size,
+        thresholdBytes,
+        enableCompression,
+        isDev: import.meta.env.DEV
+      })
+      try {
+        // 后台压缩，不阻塞当前上传
+        maybeCompressForNetlify(file, thresholdBytes).then(({ file: compacted, compressed }) => {
+          if (compressed) {
+            console.log('✅ 后台压缩完成，下次上传将使用压缩版本:', {
+              originalSize: file.size,
+              newSize: compacted.size,
+              reduction: Math.round((1 - compacted.size / file.size) * 100) + '%'
+            })
+            // 可以存储到 localStorage 供下次使用
+            try {
+              const compressedKey = `compressed_${file.name}_${file.size}`
+              localStorage.setItem(compressedKey, JSON.stringify({
+                name: compacted.name,
+                size: compacted.size,
+                timestamp: Date.now()
+              }))
+            } catch (e) {
+              console.warn('存储压缩信息失败:', e)
+            }
+          } else {
+            console.log('⚠️ 压缩未生效，文件大小未超过阈值或压缩失败')
+          }
+        }).catch(e => {
+          console.warn('❌ 后台压缩失败:', e)
+        })
+      } catch (e) {
+        console.warn('❌ 启动后台压缩失败:', e)
+      }
+    } else {
+      console.log('ℹ️ 跳过压缩:', {
+        enableCompression,
+        fileSize: file.size,
+        thresholdBytes,
+        reason: !enableCompression ? '压缩已禁用' : '文件未超过阈值'
+      })
+    }
+
+    // 使用原文件上传
+    uploadFile = file
+
     // 创建FormData
     const formData = new FormData()
-    formData.append('video', file)
+    formData.append('video', uploadFile)
 
     // 配置请求选项
     const config = {
@@ -69,10 +127,32 @@ export const videoApi = {
       }
     }
 
+    // 若当前使用了仅音频压缩，添加一个提示性请求头（不影响multipart自动设置）
+    if (usedCompressed) {
+      config.headers = {
+        ...(config.headers || {}),
+        'X-Upload-Audio-Only': '1'
+      }
+    }
+
     try {
       const response = await api.post('/video/upload', formData, config)
       return response.data
     } catch (error) {
+      // 如果使用了压缩文件且后端返回格式相关错误，自动回退上传原文件
+      const status = error?.response?.status
+      const bodyMsg = error?.response?.data?.message || ''
+      const isFormatError = [400, 415, 422].includes(status) || /format|mime|audio|codec/i.test(bodyMsg)
+      if (usedCompressed && isFormatError) {
+        try {
+          const fallbackForm = new FormData()
+          fallbackForm.append('video', file)
+          const resp = await api.post('/video/upload', fallbackForm, config)
+          return resp.data
+        } catch (e) {
+          throw e
+        }
+      }
       if (error.code === 'ECONNABORTED') {
         throw new Error('上传超时，请检查网络连接或尝试上传更小的文件')
       }
