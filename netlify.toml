@@ -15,6 +15,14 @@
   status = 200
   force = true
 
+# 转文案 API 特殊配置 - 需要更长的超时时间
+[[redirects]]
+  from = "/api/video/transcribe/*"
+  to = "http://47.109.155.18:2222/api/video/transcribe/:splat"
+  status = 200
+  force = true
+  timeout = 600
+
 # 视频文件代理
 [[redirects]]
   from = "/videos/*"
