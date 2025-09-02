@@ -59,9 +59,7 @@ export const videoApi = {
 
     // 配置请求选项
     const config = {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
+      // 不手动设置 Content-Type，交给浏览器自动生成带 boundary 的 multipart/form-data
       timeout: 300000, // 5分钟超时
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
@@ -335,7 +333,7 @@ export const videoApi = {
    * @returns {Promise<Object>} 转文案结果
    */
   async getTranscriptionResult(taskId) {
-    const response = await api.get(`/video/transcribe/result/${taskId}`, {
+    const response = await api.get(`/video/transcription/${taskId}`, {
       showLoading: false // 轮询时不显示loading
     })
     return response.data
@@ -350,12 +348,19 @@ export const videoApi = {
   async pollTranscriptionResult(taskId, { interval = 3000, maxAttempts = 100 } = {}) {
     let attempts = 0
     while (attempts < maxAttempts) {
-      const res = await this.getTranscriptionResult(taskId)
-      if (res.status === 'completed') {
-        return res
-      }
-      if (res.status === 'failed') {
-        throw new Error(res.errorMessage || '转文案失败')
+      try {
+        const res = await this.getTranscriptionResult(taskId)
+        if (res.status === 'completed' || res.transcription?.status === 'completed') {
+          return res
+        }
+        if (res.status === 'failed' || res.transcription?.status === 'failed') {
+          throw new Error(res.errorMessage || res.transcription?.errorMessage || '转文案失败')
+        }
+      } catch (error) {
+        // 404 表示结果尚未生成，继续轮询
+        if (error?.response?.status !== 404) {
+          throw error
+        }
       }
       await new Promise(resolve => setTimeout(resolve, interval))
       attempts++

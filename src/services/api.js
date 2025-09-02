@@ -3,9 +3,11 @@ import { showToast, showLoadingToast, closeToast } from 'vant'
 
 // 环境配置
 const isDevelopment = import.meta.env.DEV
-const API_BASE_URL = isDevelopment 
+// 优先使用环境变量，便于在生产环境绕过静态站点代理直连后端
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (isDevelopment 
   ? 'http://47.109.155.18:2222/api'  // 开发环境
-  : '/api'  // 生产环境使用相对路径
+  : '/api'  // 默认生产为相对路径（Netlify 代理）
+)
 
 console.log('API环境配置:', { isDevelopment, API_BASE_URL })
 
