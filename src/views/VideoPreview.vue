@@ -283,6 +283,12 @@
         <!-- 转文案结果 -->
         <div v-if="transcriptionResult" class="transcription-section animate-fade-in-up">
           <div class="transcription-card card-floating">
+            <!-- AI处理提示信息 -->
+            <div class="ai-processing-hint">
+              <van-icon name="clock-o" class="hint-icon" />
+              <span class="hint-text">AI 转文案和优化需要时间，请耐心等待，期间请勿重复操作</span>
+            </div>
+            
             <div class="transcription-header">
               <h3>
                 <van-icon name="chat-o" />
@@ -495,12 +501,19 @@ const proxyPreviewUrl = computed(() => {
         if (proxyUrl.includes('/videos/')) {
           // 提取 /videos/ 之后的部分
           proxyUrl = proxyUrl.substring(proxyUrl.indexOf('/videos/'))
+        } else {
+          // 如果路径不包含 /videos/，直接添加
+          proxyUrl = `/videos${proxyUrl}`
         }
       } else {
         // 如果不以 / 开头，添加 /videos/ 前缀
         proxyUrl = `/videos/${proxyUrl}`
       }
     }
+    
+    // 清理路径中的重复部分和特殊字符
+    proxyUrl = proxyUrl.replace(/\/videos\/videos\//, '/videos/')
+    proxyUrl = proxyUrl.replace(/\/+/g, '/') // 替换多个连续的斜杠为单个
     
     console.log('生产环境 - 转换为代理URL:', proxyUrl)
     console.log('视频将通过Netlify代理访问:', window.location.origin + proxyUrl)
@@ -1504,28 +1517,51 @@ $success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     flex-direction: column;
     gap: $space-md;
     
-    .elegant-hint {
-      display: flex;
-      align-items: center;
-      gap: $space-xs;
-      background: rgba(255, 255, 255, 0.1);
-      padding: $space-sm $space-md;
-      border-radius: $radius-lg;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: rgba(255, 255, 255, 0.8);
-      font-size: $font-sm;
-      opacity: 0.9;
-      margin-bottom: $space-sm;
-      
-      .hint-icon {
-        color: #667eea;
-        flex-shrink: 0;
-      }
-      
-      .hint-text {
-        line-height: 1.4;
-      }
-    }
+            .elegant-hint {
+          display: flex;
+          align-items: center;
+          gap: $space-xs;
+          background: rgba(255, 255, 255, 0.1);
+          padding: $space-sm $space-md;
+          border-radius: $radius-lg;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: rgba(255, 255, 255, 0.8);
+          font-size: $font-sm;
+          opacity: 0.9;
+          margin-bottom: $space-sm;
+          
+          .hint-icon {
+            color: #667eea;
+            flex-shrink: 0;
+          }
+          
+          .hint-text {
+            line-height: 1.4;
+          }
+        }
+        
+        .ai-processing-hint {
+          display: flex;
+          align-items: center;
+          gap: $space-xs;
+          background: rgba(79, 172, 254, 0.1);
+          padding: $space-sm $space-md;
+          border-radius: $radius-lg;
+          border: 1px solid rgba(79, 172, 254, 0.2);
+          color: rgba(79, 172, 254, 0.9);
+          font-size: $font-sm;
+          opacity: 0.9;
+          margin-bottom: $space-md;
+          
+          .hint-icon {
+            color: #4facfe;
+            flex-shrink: 0;
+          }
+          
+          .hint-text {
+            line-height: 1.4;
+          }
+        }
     
     .action-btn {
       height: 56px;
